@@ -33,18 +33,25 @@ class Engrams:
         self.batch_size, self.memory_length, self.hidden_dim = data.shape
         self.data: torch.Tensor = data.detach()
         self.fire_count: torch.Tensor = (
-            torch.zeros([self.batch_size, self.memory_length], dtype=int, requires_grad=False)
+            torch.zeros([self.batch_size, self.memory_length], dtype=int, requires_grad=False, device=data.device)
             if fire_count is None
             else fire_count.detach()
         )
         self.induce_counts: torch.Tensor = (
-            torch.zeros([self.batch_size, self.memory_length, self.memory_length], dtype=int, requires_grad=False)
+            torch.zeros(
+                [self.batch_size, self.memory_length, self.memory_length],
+                dtype=int,
+                requires_grad=False,
+                device=data.device,
+            )
             if induce_counts is None
             else induce_counts.detach()
         )
         default_engram_type = engrams_types if isinstance(engrams_types, EngramType) else EngramType.WORKING
         self.engrams_types = (
-            torch.full_like(self.fire_count, default_engram_type.value, dtype=int)
+            torch.full_like(
+                self.fire_count, default_engram_type.value, dtype=int, requires_grad=False, device=data.device
+            )
             if not isinstance(engrams_types, torch.Tensor)
             else engrams_types.detach()
         )
@@ -76,7 +83,10 @@ class Engrams:
 
         new_memory_length = self.memory_length + other.memory_length
         concatenated_induce_counts = torch.zeros(
-            [self.batch_size, new_memory_length, new_memory_length], dtype=int, requires_grad=False
+            [self.batch_size, new_memory_length, new_memory_length],
+            dtype=int,
+            requires_grad=False,
+            device=self.data.device,
         )
         concatenated_induce_counts[:, : self.memory_length, : self.memory_length] = self.induce_counts
         concatenated_induce_counts[:, self.memory_length :, self.memory_length :] = other.induce_counts
@@ -253,7 +263,7 @@ class Engrams:
             selected_induce_counts = self.induce_counts[:, indices][:, :, indices]
             selected_engrams_types = self.engrams_types[:, indices]
         elif len(indices.shape) == 2:
-            index_0 = torch.arange(self.batch_size, device=self.induce_counts.device)
+            index_0 = torch.arange(self.batch_size, device=self.induce_counts.device, requires_grad=False)
             selected_data = self.data[index_0.unsqueeze(1), indices]
             selected_fire_count = self.fire_count[index_0.unsqueeze(1), indices]
             selected_induce_counts = self.induce_counts[

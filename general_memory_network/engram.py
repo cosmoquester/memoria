@@ -21,8 +21,10 @@ class Engrams:
         data: real memory data shaped [BatchSize, MemoryLength, HiddenDim]
         fire_count: fire count of each engram shaped [BatchSize, MemoryLength]
         induce_counts: induce count of each engram about each engram shaped [BatchSize, MemoryLength, MemoryLength]
+        engrams_types: engram types of each engram shaped [BatchSize, MemoryLength]
     """
 
+    @torch.no_grad()
     def __init__(
         self,
         data: torch.Tensor,
@@ -61,8 +63,9 @@ class Engrams:
         return cls(torch.zeros([0, 0, 0], dtype=torch.int, requires_grad=False))
 
     def __len__(self) -> int:
-        return self.data.numel()
+        return self.fire_count.numel()
 
+    @torch.no_grad()
     def __eq__(self, other: "Engrams") -> bool:
         return (
             (self.data == other.data).all()
@@ -71,6 +74,7 @@ class Engrams:
             and (self.engrams_types == other.engrams_types).all()
         )
 
+    @torch.no_grad()
     def __add__(self, other: "Engrams") -> "Engrams":
         if len(self) == 0:
             return other
@@ -96,17 +100,21 @@ class Engrams:
         )
 
     @property
+    @torch.no_grad()
     def working_memory_mask(self) -> torch.Tensor:
         return self.engrams_types == EngramType.WORKING.value
 
     @property
+    @torch.no_grad()
     def shortterm_memory_mask(self) -> torch.Tensor:
         return self.engrams_types == EngramType.SHORTTERM.value
 
     @property
+    @torch.no_grad()
     def longterm_memory_mask(self) -> torch.Tensor:
         return self.engrams_types == EngramType.LONGTERM.value
 
+    @torch.no_grad()
     def get_indices_with_mask(self, mask) -> torch.Tensor:
         """Get global indices with boolean mask
 
@@ -142,6 +150,7 @@ class Engrams:
             prev_row_index = row_index
         return indices
 
+    @torch.no_grad()
     def get_working_memory(self) -> Tuple["Engrams", torch.Tensor]:
         """Get working memory engrams and global indices
 
@@ -155,6 +164,7 @@ class Engrams:
         memory = self.mask_select(mask=mask)
         return memory, indices
 
+    @torch.no_grad()
     def get_shortterm_memory(self) -> Tuple["Engrams", torch.Tensor]:
         """Get shortterm memory engrams and global indices
 
@@ -168,6 +178,7 @@ class Engrams:
         memory = self.mask_select(mask=mask)
         return memory, indices
 
+    @torch.no_grad()
     def get_longterm_memory(self) -> Tuple["Engrams", torch.Tensor]:
         """Get longterm memory engrams and global indices
 
@@ -181,6 +192,7 @@ class Engrams:
         memory = self.mask_select(mask=mask)
         return memory, indices
 
+    @torch.no_grad()
     def mask_select(self, mask: torch.BoolTensor) -> "Engrams":
         """Select values with mask
 
@@ -247,6 +259,7 @@ class Engrams:
         selected_engrams = padded_engrams.select(indices)
         return selected_engrams
 
+    @torch.no_grad()
     def select(self, indices: torch.Tensor) -> "Engrams":
         """Select indices of memory parts
 

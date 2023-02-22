@@ -149,6 +149,17 @@ def test_select(
     assert (selected_engrams.engrams_types == selected_engram_types).all()
 
 
+def test_get_local_indices_from_global_indices():
+    data = torch.tensor([[[1], [2], [3], [4], [5], [6]]])
+    engrams_types = torch.tensor([[EngramType.SHORTTERM.value] * 3 + [EngramType.LONGTERM.value] * 3])
+    engrams = Engrams(data, engrams_types=engrams_types)
+
+    global_indices = [[0, 4, 5, -1]]
+    local_indices = engrams.get_local_indices_from_global_indices(engrams.longterm_memory_mask, global_indices)
+
+    assert (local_indices == torch.tensor([[1, 2]])).all()
+
+
 @pytest.mark.parametrize(
     "data,mask,selected_data,selected_fire_count,selected_induce_counts,selected_engram_types",
     [

@@ -193,6 +193,32 @@ class Engrams:
         return memory, indices
 
     @torch.no_grad()
+    def get_local_indices_from_global_indices(
+        self, partial_mask: torch.Tensor, global_indices: torch.Tensor
+    ) -> torch.Tensor:
+        """Get local ltm indices from global ltm indices
+
+        Args:
+            partial_mask: mask to select sub-engrams shaped [BatchSize, MemoryLength]
+            global_indices: indices for this engrams shaped [BatchSize, NumIndices]
+        """
+        partial_indices = self.get_indices_with_mask(partial_mask)
+        partial_engrams = self.select(partial_indices)
+
+        selected_partial_mask = torch.full_like(
+            partial_mask, False, requires_grad=False, device=partial_mask.device, dtype=torch.bool
+        )
+        index_0 = torch.arange(self.batch_size, requires_grad=False, device=partial_mask.device).unsqueeze(1)
+        selected_partial_mask[index_0, global_indices] = True
+
+        # [BatchSize, NumLTMems]
+        local_selected_partial_mask = selected_partial_mask[index_0, partial_indices]
+        # [BatchSize, NumUniqueInitialLTMs]
+        local_selected_ltm_indices = partial_engrams.get_indices_with_mask(local_selected_partial_mask)
+
+        return local_selected_ltm_indices
+
+    @torch.no_grad()
     def mask_select(self, mask: torch.BoolTensor) -> "Engrams":
         """Select values with mask
 

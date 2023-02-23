@@ -324,3 +324,25 @@ def test_get_memories():
     assert ((wm_engrams.engrams_types == WORKING) | (wm_engrams.engrams_types == NULL)).all()
     assert ((stm_engrams.engrams_types == SHORTTERM) | (stm_engrams.engrams_types == NULL)).all()
     assert ((ltm_engrams.engrams_types == LONGTERM) | (ltm_engrams.engrams_types == NULL)).all()
+
+
+def test_delete():
+    data = torch.tensor(
+        [
+            [[1.0], [2.0], [3.0], [4.0], [5.0]],
+            [[6.0], [7.0], [8.0], [9.0], [10.0]],
+        ]
+    )
+    engrams = Engrams(data=data)
+    engrams.delete(torch.tensor([[1, 3], [4, -1]]))
+
+    assert (
+        engrams.data
+        == torch.tensor(
+            [
+                [[1.0], [3.0], [5.0], [0.0]],
+                [[6.0], [7.0], [8.0], [9.0]],
+            ]
+        )
+    ).all()
+    assert (engrams.fire_count == torch.tensor([[0, 0, 0, -1], [0, 0, 0, 0]])).all()

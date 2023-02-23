@@ -347,3 +347,21 @@ class Engrams:
             selected_induce_counts.masked_fill_(1 - reverse_mask.unsqueeze(2) @ reverse_mask.unsqueeze(1), -1)
             selected_engrams_types.masked_fill_(null_indices_mask, EngramType.NULL.value)
         return Engrams(selected_data, selected_fire_count, selected_induce_counts, selected_engrams_types)
+
+    @torch.no_grad()
+    def delete(self, indices: torch.Tensor) -> None:
+        """Delete selected indices engrams
+
+        Args:
+            indices: indices of engrams to be deleted shaped [BatchSize, NumIndices]
+        """
+        mask = self.get_mask_with_indices(indices)
+        preserve_indices = self.get_indices_with_mask(~mask)
+        selected = self.select(preserve_indices)
+
+        self.batch_size = selected.batch_size
+        self.memory_length = selected.memory_length
+        self.data = selected.data
+        self.fire_count = selected.fire_count
+        self.induce_counts = selected.induce_counts
+        self.engrams_types = selected.engrams_types

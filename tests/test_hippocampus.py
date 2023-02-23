@@ -122,3 +122,33 @@ def test_memorize_shortterm_memory_as_longterm_memory_or_drop():
     hippocampus.memorize_shortterm_memory_as_longterm_memory_or_drop()
 
     assert len(hippocampus.engrams) == batch_size * (2 + 4)
+
+
+def test_call():
+    num_initial_ltm = 3
+    threshold_stm = 0.1
+    ltm_search_depth = 3
+    stm_capacity = 100
+    ltm_min_fire_count = 2
+    hippocampus = Hippocampus(
+        num_initial_ltm=num_initial_ltm,
+        threshold_stm=threshold_stm,
+        ltm_search_depth=ltm_search_depth,
+        stm_capacity=stm_capacity,
+        ltm_min_fire_count=ltm_min_fire_count,
+    )
+
+    batch_size = 3
+    memory_length = 50
+    hidden_dim = 32
+    outputs = hippocampus(torch.randn(batch_size, memory_length, hidden_dim))
+    assert len(hippocampus.engrams.get_shortterm_memory()[0]) == batch_size * memory_length
+    assert outputs.size(1) == 0
+
+    outputs = hippocampus(torch.randn(batch_size, memory_length, hidden_dim))
+    assert len(hippocampus.engrams.get_shortterm_memory()[0]) == batch_size * memory_length * 2
+    assert outputs.size(1) > 0
+
+    outputs = hippocampus(torch.randn(batch_size, memory_length, hidden_dim))
+    assert len(hippocampus.engrams.get_shortterm_memory()[0]) == batch_size * memory_length * 2
+    assert outputs.size(1) > 0

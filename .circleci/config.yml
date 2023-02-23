@@ -2,7 +2,7 @@ version: 2.1
 
 executors:
   python-executor:
-    working_directory: ~/general-memory-network
+    working_directory: ~/memoria
     docker:
       - image: circleci/python:3.8
 

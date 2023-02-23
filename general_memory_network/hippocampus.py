@@ -21,6 +21,37 @@ class Hippocampus:
         self.ltm_min_fire_count: int = ltm_min_fire_count
 
     @torch.no_grad()
+    def __call__(self, data: torch.Tensor) -> torch.Tensor:
+        """Remind and memorize, drop memories
+
+        Args:
+            data: input data which is working memory shaped [BatchSize, WorkingMemoryLength, HiddenDim]
+        Return:
+            reminded data not containing working memory shaped [BatchSize, RemindedMemoryLength, HiddenDim]
+        """
+        self.add_working_memory(data)
+
+        wm_engrams, _ = self.engrams.get_working_memory()
+        stm_engrams, stm_indices = self.engrams.get_shortterm_memory()
+        ltm_engrams, _ = self.engrams.get_longterm_memory()
+
+        weight = self.calculate_wm_stm_weight(wm_engrams, stm_engrams)
+        reminded_stm_indices = self.remind_shortterm_memory(weight, stm_indices)
+        nearest_stm_indices = self.find_stm_nearest_to_ltm(weight, stm_indices)
+        initial_ltm_indices = self.find_initial_longterm_memory(nearest_stm_indices)
+        reminded_ltm_indices = self.search_longterm_memories_with_initials(initial_ltm_indices, ltm_engrams)
+        reminded_ltm_indices = reminded_ltm_indices.view(reminded_ltm_indices.size(0), -1)
+
+        reminded_indices = torch.cat([reminded_stm_indices, reminded_ltm_indices], dim=1)
+        # [BatchSize, RemindedMemoryLength, HiddenDim]
+        reminded_memories = self.engrams.select(reminded_indices).data
+
+        self.memorize_working_memory_as_shortterm_memory()
+        self.memorize_shortterm_memory_as_longterm_memory_or_drop()
+
+        return reminded_memories
+
+    @torch.no_grad()
     def add_working_memory(self, data: torch.Tensor) -> None:
         """Add new working memories to engrams
 

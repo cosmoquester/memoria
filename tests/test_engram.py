@@ -187,6 +187,43 @@ def test_get_local_indices_from_global_indices():
     assert (local_indices == torch.tensor([[1, 2]])).all()
 
 
+def test_fire_together_wire_together():
+    data = torch.tensor([[[1], [2], [3], [4], [5], [6]]])
+    engrams = Engrams(data)
+
+    engrams.fire_together_wire_together(torch.tensor([[0, 2, 4, -1]]))
+    assert (engrams.fire_count == torch.tensor([[1, 0, 1, 0, 1, 0]])).all()
+    assert (
+        engrams.induce_counts
+        == torch.tensor(
+            [
+                [1, 0, 1, 0, 1, 0],
+                [0, 0, 0, 0, 0, 0],
+                [1, 0, 1, 0, 1, 0],
+                [0, 0, 0, 0, 0, 0],
+                [1, 0, 1, 0, 1, 0],
+                [0, 0, 0, 0, 0, 0],
+            ]
+        )
+    ).all()
+
+    engrams.fire_together_wire_together(torch.tensor([[0, 1, 2, 2, 3, -1, -10]]))
+    assert (engrams.fire_count == torch.tensor([[2, 1, 2, 1, 1, 0]])).all()
+    assert (
+        engrams.induce_counts
+        == torch.tensor(
+            [
+                [2, 1, 2, 1, 1, 0],
+                [1, 1, 1, 1, 0, 0],
+                [2, 1, 2, 1, 1, 0],
+                [1, 1, 1, 1, 0, 0],
+                [1, 0, 1, 0, 1, 0],
+                [0, 0, 0, 0, 0, 0],
+            ]
+        )
+    ).all()
+
+
 @pytest.mark.parametrize(
     "data,mask,selected_data,selected_fire_count,selected_induce_counts,selected_engram_types",
     [

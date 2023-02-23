@@ -151,6 +151,24 @@ class Engrams:
         return indices
 
     @torch.no_grad()
+    def get_mask_with_indices(self, indices: torch.Tensor) -> torch.Tensor:
+        """Get mask with indices
+
+        Args:
+            indices: indices, negative values ignored shaped [BatchSize, NumIndices]
+        Return:
+            mask: boolean mask shaped [BatchSize, MemoryLength]
+        """
+        indices[indices < 0] = -1
+        mask = torch.zeros(
+            [self.batch_size, self.memory_length + 1], dtype=torch.bool, device=indices.device, requires_grad=False
+        )
+        index_0 = torch.arange(self.batch_size, device=indices.device, requires_grad=False).unsqueeze(1)
+        mask[index_0, indices] = True
+        mask = mask[:, :-1]
+        return mask
+
+    @torch.no_grad()
     def get_working_memory(self) -> Tuple["Engrams", torch.Tensor]:
         """Get working memory engrams and global indices
 

@@ -115,7 +115,7 @@ class Engrams:
         return self.engrams_types == EngramType.LONGTERM.value
 
     @torch.no_grad()
-    def get_indices_with_mask(self, mask) -> torch.Tensor:
+    def get_indices_with_mask(self, mask: torch.Tensor) -> torch.Tensor:
         """Get global indices with boolean mask
 
         Args:
@@ -235,6 +235,18 @@ class Engrams:
         local_selected_ltm_indices = partial_engrams.get_indices_with_mask(local_selected_partial_mask)
 
         return local_selected_ltm_indices
+
+    @torch.no_grad()
+    def fire_together_wire_together(self, indices: torch.Tensor) -> None:
+        """Fire & Wire engrams with indices
+
+        Args:
+            indices: global indices of firing engrams shaped [BatchSize, NumIndices]
+                -1 means ignore, multiple same indices considered once.
+        """
+        mask = self.get_mask_with_indices(indices).int()
+        self.fire_count += mask
+        self.induce_counts += mask.unsqueeze(2) @ mask.unsqueeze(1)
 
     @torch.no_grad()
     def mask_select(self, mask: torch.BoolTensor) -> "Engrams":

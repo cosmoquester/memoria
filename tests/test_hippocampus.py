@@ -64,5 +64,5 @@ def test_find_initial_ltm():
     hippocampus.engrams.induce_counts[:, :num_stm, :num_stm] = 999
     nearest_stm_indices = torch.tensor([[0, 2, 3]])
 
-    initial_ltm_indices = hippocampus.find_initial_ltm(nearest_stm_indices)
+    initial_ltm_indices = hippocampus.find_initial_longterm_memory(nearest_stm_indices)
     assert (initial_ltm_indices == torch.tensor([[6, 7]])).all()

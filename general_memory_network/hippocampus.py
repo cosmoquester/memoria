@@ -4,11 +4,12 @@ from .engram import Engrams, EngramType
 
 
 class Hippocampus:
-    def __init__(self, num_initial_ltm: int, threshold_stm: float) -> None:
+    def __init__(self, num_initial_ltm: int, threshold_stm: float, ltm_search_depth: int) -> None:
         self.engrams = Engrams.empty()
 
         self.num_initial_ltm: int = num_initial_ltm
         self.threshold_stm: float = threshold_stm
+        self.ltm_search_depth: int = ltm_search_depth
 
     @torch.no_grad()
     def add_working_memory(self, data: torch.Tensor) -> None:
@@ -78,22 +79,22 @@ class Hippocampus:
         return nearest_stm_indices
 
     @torch.no_grad()
-    def find_initial_ltm(self, nearest_stm_indices: torch.Tensor) -> torch.Tensor:
+    def find_initial_longterm_memory(self, nearest_shortterm_memory_indices: torch.Tensor) -> torch.Tensor:
         """Search nearest longterm memory indices
 
         Args:
-            nearest_stm_indices: shortterm memory indices shaped [BatchSize, NumInitialLTMs]
+            nearest_shortterm_memory_indices: shortterm memory indices shaped [BatchSize, NumInitialLTMs]
                 got from `find_stm_nearest_to_ltm` method
         Return:
             initial longterm memory indices to be reminded shaped [BatchSize, NumInitialLTMs]
         """
         index_0 = torch.arange(
-            nearest_stm_indices.size(0),
+            nearest_shortterm_memory_indices.size(0),
             requires_grad=False,
-            device=nearest_stm_indices.device,
+            device=nearest_shortterm_memory_indices.device,
         ).unsqueeze(1)
         # [BatchSize, NumInitialLTMs, MemoryLength]
-        induce_counts = self.engrams.induce_counts[index_0, nearest_stm_indices]
+        induce_counts = self.engrams.induce_counts[index_0, nearest_shortterm_memory_indices]
         # [BatchSize, MemoryLength]
         ltm_mask = self.engrams.longterm_memory_mask
 

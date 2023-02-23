@@ -71,7 +71,7 @@ class Hippocampus:
                 -1 means unselected. other values mean selected
         """
         # [BatchSize, WorkingMemoryLength, FiringShorttermMemories]
-        _, top_indices = weight.topk(k=self.num_initial_ltm, dim=2)
+        _, top_indices = weight.topk(k=min(self.num_initial_ltm, weight.size(2)), dim=2)
 
         # [BatchSize, WorkingMemoryLength * FiringShorttermMemories]
         top_indices = top_indices.view(weight.size(0), -1)

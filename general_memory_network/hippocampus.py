@@ -134,6 +134,14 @@ class Hippocampus:
         local_initial_ltm_indices = self.engrams.get_local_indices_from_global_indices(
             self.engrams.longterm_memory_mask, initial_longterm_memory_indices
         )
+        if initial_longterm_memory_indices.numel() == 0 or len(longterm_memory) == 0:
+            return torch.zeros(
+                [batch_size, self.ltm_search_depth + 1, num_init_ltms],
+                dtype=torch.long,
+                device=initial_longterm_memory_indices.device,
+                requires_grad=False,
+            )
+
         # [BatchSize, NumLTMems]
         unreachable = ~longterm_memory.longterm_memory_mask
         found_ltm_indices = torch.full(

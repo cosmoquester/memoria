@@ -5,13 +5,13 @@ from general_memory_network.hippocampus import Hippocampus
 
 
 def test_add_working_memory():
-    hippocampus = Hippocampus(3, 0.5)
+    hippocampus = Hippocampus(3, 0.5, 3)
     hippocampus.add_working_memory(torch.randn(3, 10, 32))
     assert len(hippocampus.engrams) == 30
 
 
 def test_calculate_wm_stm_weight():
-    hippocampus = Hippocampus(3, 0.5)
+    hippocampus = Hippocampus(3, 0.5, 3)
     hippocampus.add_working_memory(torch.randn(3, 10, 32))
 
     wm = Engrams(torch.randn(3, 10, 32))
@@ -21,7 +21,7 @@ def test_calculate_wm_stm_weight():
 
 
 def test_remind_shortterm_memory():
-    hippocampus = Hippocampus(3, 0.5)
+    hippocampus = Hippocampus(3, 0.5, 3)
 
     weight = torch.tensor([[[0.51, 0.2, 0.2, 0.8]]])
     shortterm_memory_indices = torch.tensor([[1, 2, 3, 4]])
@@ -30,7 +30,7 @@ def test_remind_shortterm_memory():
 
 
 def test_find_stm_nearest_to_ltm():
-    hippocampus = Hippocampus(2, 0.5)
+    hippocampus = Hippocampus(2, 0.5, 3)
 
     weight = torch.tensor([[[0.51, 0.2, 0.9, 0.8], [0.9, 0.1, 0.2, 0.5]]])
     shortterm_memory_indices = torch.tensor([[1, 2, 3, 4]])
@@ -44,7 +44,7 @@ def test_find_initial_ltm():
     num_initial_ltm = 3
     num_stm = 5
     num_ltm = 4
-    hippocampus = Hippocampus(num_initial_ltm, 0.5)
+    hippocampus = Hippocampus(num_initial_ltm, 0.5, 3)
 
     stm = Engrams(torch.randn(1, num_stm, 32), engrams_types=EngramType.SHORTTERM)
     ltm = Engrams(torch.randn(1, num_ltm, 32), engrams_types=EngramType.LONGTERM)
@@ -66,3 +66,21 @@ def test_find_initial_ltm():
 
     initial_ltm_indices = hippocampus.find_initial_longterm_memory(nearest_stm_indices)
     assert (initial_ltm_indices == torch.tensor([[6, 7]])).all()
+
+
+def test_search_longterm_memories_with_initials():
+    num_initial_ltm = 2
+    num_stm = 5
+    num_ltm = 4
+    ltm_search_depth = 3
+    hippocampus = Hippocampus(num_initial_ltm, 0.5, ltm_search_depth)
+
+    stm = Engrams(torch.randn(1, num_stm, 32), engrams_types=EngramType.SHORTTERM)
+    ltm = Engrams(torch.randn(1, num_ltm, 32), engrams_types=EngramType.LONGTERM)
+    hippocampus.engrams = stm + ltm
+
+    initial_ltm_indices = torch.tensor([[5, 7]])
+    searched_ltm_indices = hippocampus.search_longterm_memories_with_initials(initial_ltm_indices, ltm)
+
+    assert searched_ltm_indices.shape == torch.Size([1, ltm_search_depth + 1, initial_ltm_indices.size(1)])
+    assert (searched_ltm_indices == torch.tensor([[[0, 2], [1, 1], [3, 3], [-1, -1]]])).all()

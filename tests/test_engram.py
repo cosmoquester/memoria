@@ -84,6 +84,33 @@ def test_get_indices_with_mask(data: torch.Tensor, mask: torch.Tensor, expected:
 
 
 @pytest.mark.parametrize(
+    "data,indices,expected",
+    [
+        (
+            torch.tensor([[[0.0], [1.0], [2.0], [3.0]], [[4.0], [5.0], [6.0], [7.0]]]),
+            torch.tensor([[0, 2], [0, 1]]),
+            torch.tensor([[True, False, True, False], [True, True, False, False]]),
+        ),
+        (
+            torch.tensor([[[0.0], [1.0], [2.0], [3.0]], [[4.0], [5.0], [6.0], [7.0]]]),
+            torch.tensor([[0, 2, -1], [0, 1, 2]]),
+            torch.tensor([[True, False, True, False], [True, True, True, False]]),
+        ),
+        (
+            torch.tensor([[[0.0], [1.0], [2.0], [3.0]], [[4.0], [5.0], [6.0], [7.0]]]),
+            torch.tensor([[], []], dtype=torch.long),
+            torch.tensor([[False, False, False, False], [False, False, False, False]]),
+        ),
+    ],
+)
+def test_get_mask_with_indices(data: torch.Tensor, indices: torch.Tensor, expected: torch.Tensor):
+    engrams = Engrams(data)
+    mask = engrams.get_mask_with_indices(indices)
+
+    assert (mask == expected).all()
+
+
+@pytest.mark.parametrize(
     "data,indices,selected_data,selected_fire_count,selected_induce_counts,selected_engram_types",
     [
         (

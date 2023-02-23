@@ -4,12 +4,21 @@ from .engram import Engrams, EngramType
 
 
 class Hippocampus:
-    def __init__(self, num_initial_ltm: int, threshold_stm: float, ltm_search_depth: int) -> None:
+    def __init__(
+        self,
+        num_initial_ltm: int,
+        threshold_stm: float,
+        ltm_search_depth: int,
+        stm_capacity: int,
+        ltm_min_fire_count: int,
+    ) -> None:
         self.engrams = Engrams.empty()
 
         self.num_initial_ltm: int = num_initial_ltm
         self.threshold_stm: float = threshold_stm
         self.ltm_search_depth: int = ltm_search_depth
+        self.stm_capacity: int = stm_capacity
+        self.ltm_min_fire_count: int = ltm_min_fire_count
 
     @torch.no_grad()
     def add_working_memory(self, data: torch.Tensor) -> None:

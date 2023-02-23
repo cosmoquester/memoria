@@ -84,3 +84,41 @@ def test_search_longterm_memories_with_initials():
 
     assert searched_ltm_indices.shape == torch.Size([1, ltm_search_depth + 1, initial_ltm_indices.size(1)])
     assert (searched_ltm_indices == torch.tensor([[[0, 2], [1, 1], [3, 3], [-1, -1]]])).all()
+
+
+def test_memorize_working_memory_as_shortterm_memory():
+    num_initial_ltm = 2
+    batch_size = 3
+    num_wm = 5
+    num_stm = 4
+    num_ltm = 2
+    ltm_search_depth = 3
+    hippocampus = Hippocampus(num_initial_ltm, 0.5, ltm_search_depth, 100, 0)
+
+    wm = Engrams(torch.randn(batch_size, num_wm, 32), engrams_types=EngramType.WORKING)
+    stm = Engrams(torch.randn(batch_size, num_stm, 32), engrams_types=EngramType.SHORTTERM)
+    ltm = Engrams(torch.randn(batch_size, num_ltm, 32), engrams_types=EngramType.LONGTERM)
+    hippocampus.engrams = wm + stm + ltm
+
+    hippocampus.memorize_working_memory_as_shortterm_memory()
+
+    assert hippocampus.engrams.get_shortterm_memory()[0].data.shape == torch.Size([batch_size, num_wm + num_stm, 32])
+
+
+def test_memorize_shortterm_memory_as_longterm_memory_or_drop():
+    num_initial_ltm = 2
+    batch_size = 1
+    num_stm = 5
+    num_ltm = 3
+    ltm_search_depth = 3
+    ltm_min_fire_count = 2
+    hippocampus = Hippocampus(num_initial_ltm, 0.5, ltm_search_depth, 2, ltm_min_fire_count)
+
+    fire_count = torch.tensor([[0, 1, 2, 3, 0]])
+    stm = Engrams(torch.randn(batch_size, num_stm, 32), engrams_types=EngramType.SHORTTERM, fire_count=fire_count)
+    ltm = Engrams(torch.randn(batch_size, num_ltm, 32), engrams_types=EngramType.LONGTERM)
+    hippocampus.engrams = stm + ltm
+
+    hippocampus.memorize_shortterm_memory_as_longterm_memory_or_drop()
+
+    assert len(hippocampus.engrams) == batch_size * (2 + 4)

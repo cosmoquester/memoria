@@ -160,3 +160,31 @@ class Hippocampus:
             unreachable[index_0, current_ltm_indices] = True
 
         return found_ltm_indices
+
+    @torch.no_grad()
+    def memorize_working_memory_as_shortterm_memory(self):
+        """Move working memory to shortterm memory"""
+        self.engrams.engrams_types[self.engrams.working_memory_mask] = EngramType.SHORTTERM.value
+
+    @torch.no_grad()
+    def memorize_shortterm_memory_as_longterm_memory_or_drop(self):
+        """Move exceeded shortterm memory to longterm memory or drop"""
+        stm_engrams, stm_indices = self.engrams.get_shortterm_memory()
+        num_exceeded_stm = stm_engrams.memory_length - self.stm_capacity
+
+        if num_exceeded_stm <= 0:
+            return
+
+        # [BatchSize, NumExceededSTMems]
+        exceeded_stm_indices = stm_indices[:, :num_exceeded_stm]
+        index_0 = torch.arange(self.engrams.batch_size, device=stm_indices.device, requires_grad=False).unsqueeze(1)
+        # [BatchSize, NumExceededSTMems]
+        exceeded_stm_fire_counts = self.engrams.fire_count[index_0, exceeded_stm_indices]
+
+        memorize_mask = exceeded_stm_fire_counts < self.ltm_min_fire_count
+        memorize_stm_indices = exceeded_stm_indices.masked_fill(memorize_mask, -1)
+        memorize_stm_mask = self.engrams.get_mask_with_indices(memorize_stm_indices)
+        self.engrams.engrams_types[memorize_stm_mask] = EngramType.LONGTERM.value
+
+        forget_indices = exceeded_stm_indices.masked_fill(~memorize_mask, -1)
+        self.engrams.delete(forget_indices)

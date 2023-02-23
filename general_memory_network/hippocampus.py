@@ -108,3 +108,46 @@ class Hippocampus:
         # [BatchSize, NumUniqueInitialLTMs]
         initial_ltm_indices = torch.unique(initial_ltm_indices, dim=1)
         return initial_ltm_indices
+
+    @torch.no_grad()
+    def search_longterm_memories_with_initials(
+        self, initial_longterm_memory_indices: torch.Tensor, longterm_memory: Engrams
+    ) -> torch.Tensor:
+        """Find ltm engrams with initila ltm indices by dfs method
+
+        Args:
+            initial_longterm_memory_indices: initial ltm indices shaped [BatchSize, NumUniqueInitialLTMs]
+            longterm_memory: longterm memory engrams
+        Return:
+            searched ltm indices shaped [BatchSize, SearchDepth + 1, NumUniqueInitialLTMs]
+        """
+        batch_size, num_init_ltms = initial_longterm_memory_indices.shape
+        local_initial_ltm_indices = self.engrams.get_local_indices_from_global_indices(
+            self.engrams.longterm_memory_mask, initial_longterm_memory_indices
+        )
+        # [BatchSize, NumLTMems]
+        unreachable = ~longterm_memory.longterm_memory_mask
+        found_ltm_indices = torch.full(
+            [batch_size, self.ltm_search_depth + 1, num_init_ltms],
+            -1,
+            requires_grad=False,
+            device=local_initial_ltm_indices.device,
+            dtype=local_initial_ltm_indices.dtype,
+        )
+
+        index_0 = torch.arange(batch_size, device=local_initial_ltm_indices.device, requires_grad=False).unsqueeze(1)
+        found_ltm_indices[:, 0] = local_initial_ltm_indices
+        unreachable[index_0, local_initial_ltm_indices] = True
+
+        for depth in range(self.ltm_search_depth):
+            last_ltm_indices = found_ltm_indices[:, depth]
+            reachable_induce_counts = longterm_memory.induce_counts.masked_fill(unreachable.unsqueeze(1), -1)
+            # [BatchSize, NumUniqueInitialLTMs, NumLTMems]
+            last_ltm_reachable_induce_counts = reachable_induce_counts[index_0, last_ltm_indices]
+
+            current_ltm_indices = last_ltm_reachable_induce_counts.argmax(dim=2)
+            current_ltm_indices.masked_fill_(unreachable[index_0, current_ltm_indices], -1)
+            found_ltm_indices[:, depth + 1] = current_ltm_indices
+            unreachable[index_0, current_ltm_indices] = True
+
+        return found_ltm_indices

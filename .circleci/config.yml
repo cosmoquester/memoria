@@ -36,7 +36,7 @@ jobs:
           name: Run Tests
           command: |
             source env/bin/activate
-            pytest --cov-branch --cov general_memory_network
+            pytest --cov-branch --cov memoria
 
       - run:
           name: Upload coverage report
@@ -53,8 +53,8 @@ jobs:
           name: Run black, isort
           command: |
             source env/bin/activate
-            black --check general_memory_network tests
-            isort general_memory_network tests
+            black --check memoria tests
+            isort memoria tests
 
 workflows:
   main:

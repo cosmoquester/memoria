@@ -3,7 +3,7 @@ import torch
 from .engram import Engrams, EngramType
 
 
-class Hippocampus:
+class Memoria:
     def __init__(
         self,
         num_initial_ltm: int,

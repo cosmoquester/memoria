@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from general_memory_network.engram import Engrams, EngramType
+from memoria.engram import Engrams, EngramType
 
 
 def test_empty():

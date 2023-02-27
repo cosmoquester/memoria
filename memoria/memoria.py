@@ -4,20 +4,31 @@ from .engram import Engrams, EngramType
 
 
 class Memoria:
+    """Memoria, general memory network for sequential modeling or processing"""
+
     def __init__(
         self,
-        num_initial_ltm: int,
-        threshold_stm: float,
-        ltm_search_depth: int,
+        stm_threshold: float,
         stm_capacity: int,
+        num_initial_ltm: int,
+        ltm_search_depth: int,
         ltm_min_fire_count: int,
     ) -> None:
+        """
+
+        Args:
+            stm_threshold: minimum score to remind shortterm memory, this is between 0 and 1.
+            stm_capacity: the maximum memory length per batch for shortterm memory
+            num_initial_ltm: initial longterm memory to search relevant longterm memories per query.
+            ltm_search_depth: the maximum number of depth for dfs memory search
+            ltm_min_fire_count: the minimum fire count value to memorize shortterm memory into longterm memory.
+        """
         self.engrams = Engrams.empty()
 
-        self.num_initial_ltm: int = num_initial_ltm
-        self.threshold_stm: float = threshold_stm
-        self.ltm_search_depth: int = ltm_search_depth
+        self.stm_threshold: float = stm_threshold
         self.stm_capacity: int = stm_capacity
+        self.num_initial_ltm: int = num_initial_ltm
+        self.ltm_search_depth: int = ltm_search_depth
         self.ltm_min_fire_count: int = ltm_min_fire_count
 
     @torch.no_grad()
@@ -85,7 +96,7 @@ class Memoria:
         # [BatchSize, ShorttermMemoryLength]
         stm_weight = weight.mean(dim=1)
 
-        mask = stm_weight < self.threshold_stm
+        mask = stm_weight < self.stm_threshold
         reminded_shortterm_memory_indices = shortterm_memory_indices.masked_fill(mask, -1)
         return reminded_shortterm_memory_indices
 

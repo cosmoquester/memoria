@@ -244,9 +244,9 @@ class Engrams:
             indices: global indices of firing engrams shaped [BatchSize, NumIndices]
                 -1 means ignore, multiple same indices considered once.
         """
-        mask = self.get_mask_with_indices(indices).int()
+        mask = self.get_mask_with_indices(indices)
         self.fire_count += mask
-        self.induce_counts += mask.unsqueeze(2) @ mask.unsqueeze(1)
+        self.induce_counts += (mask.float().unsqueeze(2) @ mask.float().unsqueeze(1)).long()
 
     @torch.no_grad()
     def mask_select(self, mask: torch.BoolTensor) -> "Engrams":
@@ -341,10 +341,10 @@ class Engrams:
             selected_engrams_types = self.engrams_types[index_0.unsqueeze(1), indices]
 
             null_indices_mask = indices < 0
-            reverse_mask = (~null_indices_mask).int()
+            reverse_mask = (~null_indices_mask).float()
             selected_data.masked_fill_(null_indices_mask.unsqueeze(2), 0.0)
             selected_fire_count.masked_fill_(null_indices_mask, -1)
-            selected_induce_counts.masked_fill_(1 - reverse_mask.unsqueeze(2) @ reverse_mask.unsqueeze(1), -1)
+            selected_induce_counts.masked_fill_(~(reverse_mask.unsqueeze(2) @ reverse_mask.unsqueeze(1)).bool(), -1)
             selected_engrams_types.masked_fill_(null_indices_mask, EngramType.NULL.value)
         return Engrams(selected_data, selected_fire_count, selected_induce_counts, selected_engrams_types)
 

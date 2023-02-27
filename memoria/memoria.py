@@ -42,7 +42,7 @@ class Memoria:
         """
         self.add_working_memory(data)
 
-        wm_engrams, _ = self.engrams.get_working_memory()
+        wm_engrams, wm_indices = self.engrams.get_working_memory()
         stm_engrams, stm_indices = self.engrams.get_shortterm_memory()
         ltm_engrams, _ = self.engrams.get_longterm_memory()
 
@@ -57,6 +57,8 @@ class Memoria:
         # [BatchSize, RemindedMemoryLength, HiddenDim]
         reminded_memories = self.engrams.select(reminded_indices).data
 
+        fire_indices = torch.cat([wm_indices, reminded_indices], dim=1)
+        self.engrams.fire_together_wire_together(fire_indices)
         self.memorize_working_memory_as_shortterm_memory()
         self.memorize_shortterm_memory_as_longterm_memory_or_drop()
 

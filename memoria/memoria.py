@@ -79,6 +79,7 @@ class Memoria:
             attention weights shaped [BatchSize, WorkingMemoryLength, ShorttermMemoryLength]
         """
         weight = working_memory.data @ shortterm_memory.data.transpose(1, 2)
+        weight = weight.softmax(dim=2)
         return weight
 
     @torch.no_grad()

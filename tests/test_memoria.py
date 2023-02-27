@@ -132,7 +132,7 @@ def test_call():
     ltm_min_fire_count = 2
     hippocampus = Memoria(
         num_initial_ltm=num_initial_ltm,
-        threshold_stm=threshold_stm,
+        stm_threshold=threshold_stm,
         ltm_search_depth=ltm_search_depth,
         stm_capacity=stm_capacity,
         ltm_min_fire_count=ltm_min_fire_count,

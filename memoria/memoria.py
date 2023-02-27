@@ -241,3 +241,7 @@ class Memoria:
 
         forget_indices = exceeded_stm_indices.masked_fill(~memorize_mask, -1)
         self.engrams.delete(forget_indices)
+
+    def reset_memory(self):
+        """Reset memory"""
+        self.engrams = Engrams.empty()

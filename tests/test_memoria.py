@@ -180,3 +180,12 @@ def test_call():
     outputs = hippocampus(torch.randn(batch_size, memory_length, hidden_dim))
     assert len(hippocampus.engrams.get_shortterm_memory()[0]) == batch_size * memory_length * 2
     assert outputs.size(1) > 0
+
+
+def test_reset_memory():
+    hippocampus = Memoria(
+        num_initial_ltm=3, stm_threshold=0.5, ltm_search_depth=3, stm_capacity=100, ltm_min_fire_count=0
+    )
+    hippocampus.add_working_memory(torch.randn(3, 10, 32))
+    hippocampus.reset_memory()
+    assert hippocampus.engrams == Engrams.empty()

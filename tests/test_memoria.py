@@ -5,37 +5,65 @@ from memoria.memoria import Memoria
 
 
 def test_add_working_memory():
-    memoria = Memoria(num_initial_ltm=3, stm_threshold=0.5, ltm_search_depth=3, stm_capacity=100, ltm_min_fire_count=0)
-    memoria.add_working_memory(torch.randn(3, 10, 32))
+    memoria = Memoria(
+        num_initial_ltm=3,
+        stm_threshold=0.5,
+        ltm_search_depth=3,
+        stm_capacity=100,
+        ltm_min_fire_count=0,
+        initial_lifespan=100,
+    )
+    memoria._add_working_memory(torch.randn(3, 10, 32))
     assert len(memoria.engrams) == 30
 
 
 def test_calculate_wm_stm_weight():
-    memoria = Memoria(num_initial_ltm=3, stm_threshold=0.5, ltm_search_depth=3, stm_capacity=100, ltm_min_fire_count=0)
-    memoria.add_working_memory(torch.randn(3, 10, 32))
+    memoria = Memoria(
+        num_initial_ltm=3,
+        stm_threshold=0.5,
+        ltm_search_depth=3,
+        stm_capacity=100,
+        ltm_min_fire_count=0,
+        initial_lifespan=100,
+    )
+    memoria._add_working_memory(torch.randn(3, 10, 32))
 
     wm = Engrams(torch.randn(3, 10, 32))
     stm = Engrams(torch.randn(3, 20, 32), engrams_types=EngramType.SHORTTERM)
-    weight = memoria.calculate_wm_stm_weight(wm, stm)
+    weight = memoria._calculate_wm_stm_weight(wm, stm)
     assert weight.shape == torch.Size([3, 10, 20])
 
 
 def test_remind_shortterm_memory():
-    memoria = Memoria(num_initial_ltm=3, stm_threshold=0.5, ltm_search_depth=3, stm_capacity=100, ltm_min_fire_count=0)
+    memoria = Memoria(
+        num_initial_ltm=3,
+        stm_threshold=0.5,
+        ltm_search_depth=3,
+        stm_capacity=100,
+        ltm_min_fire_count=0,
+        initial_lifespan=100,
+    )
 
     weight = torch.tensor([[[0.51, 0.2, 0.2, 0.8]]])
     shortterm_memory_indices = torch.tensor([[1, 2, 3, 4]])
-    reminded = memoria.remind_shortterm_memory(weight, shortterm_memory_indices)
+    reminded = memoria._remind_shortterm_memory(weight, shortterm_memory_indices)
     assert (reminded == torch.tensor([[1, -1, -1, 4]])).all()
 
 
 def test_find_stm_nearest_to_ltm():
-    memoria = Memoria(num_initial_ltm=2, stm_threshold=0.5, ltm_search_depth=3, stm_capacity=100, ltm_min_fire_count=0)
+    memoria = Memoria(
+        num_initial_ltm=2,
+        stm_threshold=0.5,
+        ltm_search_depth=3,
+        stm_capacity=100,
+        ltm_min_fire_count=0,
+        initial_lifespan=100,
+    )
 
     weight = torch.tensor([[[0.51, 0.2, 0.9, 0.8], [0.9, 0.1, 0.2, 0.5]]])
     shortterm_memory_indices = torch.tensor([[1, 2, 3, 4]])
 
-    nearest_stm_indices = memoria.find_stm_nearest_to_ltm(weight, shortterm_memory_indices)
+    nearest_stm_indices = memoria._find_stm_nearest_to_ltm(weight, shortterm_memory_indices)
 
     assert (nearest_stm_indices == torch.tensor([[-1, 1, 3, 4]])).all()
 
@@ -45,7 +73,12 @@ def test_find_initial_ltm():
     num_stm = 5
     num_ltm = 4
     memoria = Memoria(
-        num_initial_ltm=num_initial_ltm, stm_threshold=0.5, ltm_search_depth=3, stm_capacity=100, ltm_min_fire_count=0
+        num_initial_ltm=num_initial_ltm,
+        stm_threshold=0.5,
+        ltm_search_depth=3,
+        stm_capacity=100,
+        ltm_min_fire_count=0,
+        initial_lifespan=100,
     )
 
     stm = Engrams(torch.randn(1, num_stm, 32), engrams_types=EngramType.SHORTTERM)
@@ -66,7 +99,7 @@ def test_find_initial_ltm():
     memoria.engrams.induce_counts[:, :num_stm, :num_stm] = 999
     nearest_stm_indices = torch.tensor([[0, 2, 3]])
 
-    initial_ltm_indices = memoria.find_initial_longterm_memory(nearest_stm_indices)
+    initial_ltm_indices = memoria._find_initial_longterm_memory(nearest_stm_indices)
     assert (initial_ltm_indices == torch.tensor([[6, 7]])).all()
 
 
@@ -81,6 +114,7 @@ def test_search_longterm_memories_with_initials():
         ltm_search_depth=ltm_search_depth,
         stm_capacity=100,
         ltm_min_fire_count=0,
+        initial_lifespan=100,
     )
 
     stm = Engrams(torch.randn(1, num_stm, 32), engrams_types=EngramType.SHORTTERM)
@@ -88,7 +122,7 @@ def test_search_longterm_memories_with_initials():
     memoria.engrams = stm + ltm
 
     initial_ltm_indices = torch.tensor([[5, 7]])
-    searched_ltm_indices = memoria.search_longterm_memories_with_initials(initial_ltm_indices, ltm)
+    searched_ltm_indices = memoria._search_longterm_memories_with_initials(initial_ltm_indices, ltm)
 
     assert searched_ltm_indices.shape == torch.Size([1, ltm_search_depth + 1, initial_ltm_indices.size(1)])
     assert (searched_ltm_indices == torch.tensor([[[0, 2], [1, 1], [3, 3], [-1, -1]]])).all()
@@ -107,6 +141,7 @@ def test_memorize_working_memory_as_shortterm_memory():
         ltm_search_depth=ltm_search_depth,
         stm_capacity=100,
         ltm_min_fire_count=0,
+        initial_lifespan=100,
     )
 
     wm = Engrams(torch.randn(batch_size, num_wm, 32), engrams_types=EngramType.WORKING)
@@ -114,7 +149,7 @@ def test_memorize_working_memory_as_shortterm_memory():
     ltm = Engrams(torch.randn(batch_size, num_ltm, 32), engrams_types=EngramType.LONGTERM)
     memoria.engrams = wm + stm + ltm
 
-    memoria.memorize_working_memory_as_shortterm_memory()
+    memoria._memorize_working_memory_as_shortterm_memory()
 
     assert memoria.engrams.get_shortterm_memory()[0].data.shape == torch.Size([batch_size, num_wm + num_stm, 32])
 
@@ -132,6 +167,7 @@ def test_memorize_shortterm_memory_as_longterm_memory_or_drop():
         ltm_search_depth=ltm_search_depth,
         stm_capacity=2,
         ltm_min_fire_count=ltm_min_fire_count,
+        initial_lifespan=100,
     )
 
     fire_count = torch.tensor([[0, 1, 2, 3, 0]])
@@ -139,12 +175,12 @@ def test_memorize_shortterm_memory_as_longterm_memory_or_drop():
     ltm = Engrams(torch.randn(batch_size, num_ltm, 32), engrams_types=EngramType.LONGTERM)
     memoria.engrams = stm + ltm
 
-    memoria.memorize_shortterm_memory_as_longterm_memory_or_drop()
+    memoria._memorize_shortterm_memory_as_longterm_memory_or_drop()
 
     assert len(memoria.engrams) == batch_size * (2 + 4)
 
 
-def test_call():
+def test_remind():
     num_initial_ltm = 3
     threshold_stm = 0.1
     ltm_search_depth = 3
@@ -156,26 +192,37 @@ def test_call():
         ltm_search_depth=ltm_search_depth,
         stm_capacity=stm_capacity,
         ltm_min_fire_count=ltm_min_fire_count,
+        initial_lifespan=100,
     )
 
     batch_size = 3
     memory_length = 50
     hidden_dim = 32
-    outputs = memoria(torch.randn(batch_size, memory_length, hidden_dim))
+    outputs, indices = memoria.remind(torch.randn(batch_size, memory_length, hidden_dim))
+    memoria.adjust_lifespan_and_memories(indices, torch.ones_like(indices, dtype=float))
     assert len(memoria.engrams.get_shortterm_memory()[0]) == batch_size * memory_length
     assert outputs.size(1) == 0
 
     outputs = memoria(torch.randn(batch_size, memory_length, hidden_dim))
+    memoria.adjust_lifespan_and_memories(indices, torch.ones_like(indices, dtype=float))
     assert len(memoria.engrams.get_shortterm_memory()[0]) == batch_size * memory_length * 2
     assert outputs.size(1) > 0
 
     outputs = memoria(torch.randn(batch_size, memory_length, hidden_dim))
+    memoria.adjust_lifespan_and_memories(indices, torch.ones_like(indices, dtype=float))
     assert len(memoria.engrams.get_shortterm_memory()[0]) == batch_size * memory_length * 2
     assert outputs.size(1) > 0
 
 
 def test_reset_memory():
-    memoria = Memoria(num_initial_ltm=3, stm_threshold=0.5, ltm_search_depth=3, stm_capacity=100, ltm_min_fire_count=0)
-    memoria.add_working_memory(torch.randn(3, 10, 32))
+    memoria = Memoria(
+        num_initial_ltm=3,
+        stm_threshold=0.5,
+        ltm_search_depth=3,
+        stm_capacity=100,
+        ltm_min_fire_count=0,
+        initial_lifespan=100,
+    )
+    memoria._add_working_memory(torch.randn(3, 10, 32))
     memoria.reset_memory()
     assert memoria.engrams == Engrams.empty()

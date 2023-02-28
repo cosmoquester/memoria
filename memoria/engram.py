@@ -132,22 +132,10 @@ class Engrams:
             indices = indices.view(self.batch_size, max_num_memories)
             return indices
 
-        # TODO: Don't use for loop
-        indices = torch.full(
-            [self.batch_size, max_num_memories],
-            -1,
-            requires_grad=False,
-            device=mask.device,
-            dtype=torch.long,
-        )
-        column_index = 0
-        prev_row_index = 0
-        for row_index, value in zip(*mask.nonzero(as_tuple=True)):
-            if row_index != prev_row_index:
-                column_index = 0
-            indices[row_index, column_index] = value
-            column_index += 1
-            prev_row_index = row_index
+        valued_mask = torch.arange(self.memory_length).unsqueeze(0) * mask
+        valued_mask.masked_fill_(~mask, -1)
+        sorted_values, _ = torch.sort(valued_mask, dim=1)
+        indices = sorted_values[:, -max_num_memories:]
         return indices
 
     @torch.no_grad()

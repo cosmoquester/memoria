@@ -203,12 +203,12 @@ def test_remind():
     assert len(memoria.engrams.get_shortterm_memory()[0]) == batch_size * memory_length
     assert outputs.size(1) == 0
 
-    outputs = memoria(torch.randn(batch_size, memory_length, hidden_dim))
+    outputs, indices = memoria.remind(torch.randn(batch_size, memory_length, hidden_dim))
     memoria.adjust_lifespan_and_memories(indices, torch.ones_like(indices, dtype=float))
     assert len(memoria.engrams.get_shortterm_memory()[0]) == batch_size * memory_length * 2
     assert outputs.size(1) > 0
 
-    outputs = memoria(torch.randn(batch_size, memory_length, hidden_dim))
+    outputs, indices = memoria.remind(torch.randn(batch_size, memory_length, hidden_dim))
     memoria.adjust_lifespan_and_memories(indices, torch.ones_like(indices, dtype=float))
     assert len(memoria.engrams.get_shortterm_memory()[0]) == batch_size * memory_length * 2
     assert outputs.size(1) > 0

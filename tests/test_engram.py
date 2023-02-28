@@ -246,28 +246,28 @@ def test_fire_together_wire_together():
         (
             torch.tensor([[[0.0], [1.0], [2.0], [3.0]], [[4.0], [5.0], [6.0], [7.0]]]),
             torch.tensor([[False, True, False, True], [True, False, False, False]]),
-            torch.tensor([[[1.0], [3.0]], [[4.0], [0.0]]]),
-            torch.tensor([[0, 0], [0, -1]]),
-            torch.tensor([[[0, 0], [0, 0]], [[0, -1], [-1, -1]]]),
-            torch.tensor([[EngramType.WORKING.value] * 2, [EngramType.WORKING.value, EngramType.NULL.value]]),
+            torch.tensor([[[1.0], [3.0]], [[0.0], [4.0]]]),
+            torch.tensor([[0, 0], [-1, 0]]),
+            torch.tensor([[[0, 0], [0, 0]], [[-1, -1], [-1, 0]]]),
+            torch.tensor([[EngramType.WORKING.value] * 2, [EngramType.NULL.value, EngramType.WORKING.value]]),
         ),
         (
             torch.tensor([[[0.0], [1.0], [2.0], [3.0]], [[4.0], [5.0], [6.0], [7.0]], [[8.0], [9.0], [10.0], [11.0]]]),
             torch.tensor([[False, True, True, True], [True, False, False, False], [False, False, True, True]]),
-            torch.tensor([[[1.0], [2.0], [3.0]], [[4.0], [0.0], [0.0]], [[10.0], [11.0], [0.0]]]),
-            torch.tensor([[0, 0, 0], [0, -1, -1], [0, 0, -1]]),
+            torch.tensor([[[1.0], [2.0], [3.0]], [[0.0], [0.0], [4.0]], [[0.0], [10.0], [11.0]]]),
+            torch.tensor([[0, 0, 0], [-1, -1, 0], [-1, 0, 0]]),
             torch.tensor(
                 [
                     [[0, 0, 0], [0, 0, 0], [0, 0, 0]],
-                    [[0, -1, -1], [-1, -1, -1], [-1, -1, -1]],
-                    [[0, 0, -1], [0, 0, -1], [-1, -1, -1]],
+                    [[-1, -1, -1], [-1, -1, -1], [-1, -1, 0]],
+                    [[-1, -1, -1], [-1, 0, 0], [-1, 0, 0]],
                 ]
             ),
             torch.tensor(
                 [
                     [EngramType.WORKING.value] * 3,
-                    [EngramType.WORKING.value, EngramType.NULL.value, EngramType.NULL.value],
-                    [EngramType.WORKING.value, EngramType.WORKING.value, EngramType.NULL.value],
+                    [EngramType.NULL.value, EngramType.NULL.value, EngramType.WORKING.value],
+                    [EngramType.NULL.value, EngramType.WORKING.value, EngramType.WORKING.value],
                 ]
             ),
         ),
@@ -313,9 +313,9 @@ def test_get_memories():
     stm_engrams, stm_indices = engrams.get_shortterm_memory()
     ltm_engrams, ltm_indices = engrams.get_longterm_memory()
 
-    assert (wm_engrams.data == torch.tensor([[[1.0], [2.0]], [[10.0], [0.0]]])).all()
-    assert (stm_engrams.data == torch.tensor([[[5.0]], [[6.0]]])).all()
-    assert (ltm_engrams.data == torch.tensor([[[3.0], [0.0]], [[8.0], [9.0]]])).all()
+    assert wm_engrams == engrams.select(wm_indices)
+    assert stm_engrams == engrams.select(stm_indices)
+    assert ltm_engrams == engrams.select(ltm_indices)
 
     assert (engrams.select(wm_indices).data == torch.tensor([[[1.0], [2.0]], [[0.0], [10.0]]])).all()
     assert (engrams.select(stm_indices).data == torch.tensor([[[5.0]], [[6.0]]])).all()

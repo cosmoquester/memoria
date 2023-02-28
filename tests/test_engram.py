@@ -67,7 +67,7 @@ def test_add():
         (
             torch.tensor([[[0.0], [1.0], [2.0], [3.0]], [[4.0], [5.0], [6.0], [7.0]]]),
             torch.tensor([[True, False, True, False], [True, True, True, False]]),
-            torch.tensor([[0, 2, -1], [0, 1, 2]]),
+            torch.tensor([[-1, 0, 2], [0, 1, 2]]),
         ),
         (
             torch.tensor([[[0.0], [1.0], [2.0], [3.0]], [[4.0], [5.0], [6.0], [7.0]]]),
@@ -313,13 +313,13 @@ def test_get_memories():
     stm_engrams, stm_indices = engrams.get_shortterm_memory()
     ltm_engrams, ltm_indices = engrams.get_longterm_memory()
 
-    assert engrams.select(wm_indices) == wm_engrams
-    assert engrams.select(stm_indices) == stm_engrams
-    assert engrams.select(ltm_indices) == ltm_engrams
-
     assert (wm_engrams.data == torch.tensor([[[1.0], [2.0]], [[10.0], [0.0]]])).all()
     assert (stm_engrams.data == torch.tensor([[[5.0]], [[6.0]]])).all()
     assert (ltm_engrams.data == torch.tensor([[[3.0], [0.0]], [[8.0], [9.0]]])).all()
+
+    assert (engrams.select(wm_indices).data == torch.tensor([[[1.0], [2.0]], [[0.0], [10.0]]])).all()
+    assert (engrams.select(stm_indices).data == torch.tensor([[[5.0]], [[6.0]]])).all()
+    assert (engrams.select(ltm_indices).data == torch.tensor([[[0.0], [3.0]], [[8.0], [9.0]]])).all()
 
     assert ((wm_engrams.engrams_types == WORKING) | (wm_engrams.engrams_types == NULL)).all()
     assert ((stm_engrams.engrams_types == SHORTTERM) | (stm_engrams.engrams_types == NULL)).all()
@@ -340,9 +340,9 @@ def test_delete():
         engrams.data
         == torch.tensor(
             [
-                [[1.0], [3.0], [5.0], [0.0]],
+                [[0.0], [1.0], [3.0], [5.0]],
                 [[6.0], [7.0], [8.0], [9.0]],
             ]
         )
     ).all()
-    assert (engrams.fire_count == torch.tensor([[0, 0, 0, -1], [0, 0, 0, 0]])).all()
+    assert (engrams.fire_count == torch.tensor([[-1, 0, 0, 0], [0, 0, 0, 0]])).all()

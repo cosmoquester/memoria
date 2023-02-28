@@ -132,7 +132,7 @@ class Engrams:
             indices = indices.view(self.batch_size, max_num_memories)
             return indices
 
-        valued_mask = torch.arange(self.memory_length).unsqueeze(0) * mask
+        valued_mask = torch.arange(self.memory_length, device=mask.device, requires_grad=False).unsqueeze(0) * mask
         valued_mask.masked_fill_(~mask, -1)
         sorted_values, _ = torch.sort(valued_mask, dim=1)
         indices = sorted_values[:, -max_num_memories:]

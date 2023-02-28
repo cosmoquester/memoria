@@ -206,7 +206,7 @@ class Memoria:
         # [BatchSize, NumLTMems]
         unreachable = ~longterm_memory.longterm_memory_mask
         found_ltm_indices = torch.full(
-            [batch_size, self.ltm_search_depth + 1, num_init_ltms],
+            [batch_size, self.ltm_search_depth + 1, min(num_init_ltms, local_initial_ltm_indices.size(1))],
             -1,
             requires_grad=False,
             device=local_initial_ltm_indices.device,

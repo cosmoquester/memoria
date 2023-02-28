@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import torch
 
 from .engram import Engrams, EngramType
@@ -13,6 +15,7 @@ class Memoria:
         num_initial_ltm: int,
         ltm_search_depth: int,
         ltm_min_fire_count: int,
+        initial_lifespan: int,
     ) -> None:
         """
 
@@ -22,6 +25,7 @@ class Memoria:
             num_initial_ltm: initial longterm memory to search relevant longterm memories per query.
             ltm_search_depth: the maximum number of depth for dfs memory search
             ltm_min_fire_count: the minimum fire count value to memorize shortterm memory into longterm memory.
+            initial_lifespan: initial lifespan for each engrams
         """
         self.engrams = Engrams.empty()
 
@@ -30,27 +34,30 @@ class Memoria:
         self.num_initial_ltm: int = num_initial_ltm
         self.ltm_search_depth: int = ltm_search_depth
         self.ltm_min_fire_count: int = ltm_min_fire_count
+        self.initial_lifespan: int = initial_lifespan
 
     @torch.no_grad()
-    def __call__(self, data: torch.Tensor) -> torch.Tensor:
+    def remind(self, data: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """Remind and memorize, drop memories
 
         Args:
             data: input data which is working memory shaped [BatchSize, WorkingMemoryLength, HiddenDim]
         Return:
-            reminded data not containing working memory shaped [BatchSize, RemindedMemoryLength, HiddenDim]
+            reminded indices, data not containing working memory
+            data shaped [BatchSize, RemindedMemoryLength, HiddenDim]
+            indices shaped [BatchSize, RemindedMemoryLength]
         """
-        self.add_working_memory(data)
+        self._add_working_memory(data)
 
         wm_engrams, wm_indices = self.engrams.get_working_memory()
         stm_engrams, stm_indices = self.engrams.get_shortterm_memory()
         ltm_engrams, _ = self.engrams.get_longterm_memory()
 
-        weight = self.calculate_wm_stm_weight(wm_engrams, stm_engrams)
-        reminded_stm_indices = self.remind_shortterm_memory(weight, stm_indices)
-        nearest_stm_indices = self.find_stm_nearest_to_ltm(weight, stm_indices)
-        initial_ltm_indices = self.find_initial_longterm_memory(nearest_stm_indices)
-        reminded_ltm_indices = self.search_longterm_memories_with_initials(initial_ltm_indices, ltm_engrams)
+        weight = self._calculate_wm_stm_weight(wm_engrams, stm_engrams)
+        reminded_stm_indices = self._remind_shortterm_memory(weight, stm_indices)
+        nearest_stm_indices = self._find_stm_nearest_to_ltm(weight, stm_indices)
+        initial_ltm_indices = self._find_initial_longterm_memory(nearest_stm_indices)
+        reminded_ltm_indices = self._search_longterm_memories_with_initials(initial_ltm_indices, ltm_engrams)
         reminded_ltm_indices = reminded_ltm_indices.view(reminded_ltm_indices.size(0), -1)
 
         reminded_indices = torch.cat([reminded_stm_indices, reminded_ltm_indices], dim=1)
@@ -59,22 +66,31 @@ class Memoria:
 
         fire_indices = torch.cat([wm_indices, reminded_indices], dim=1)
         self.engrams.fire_together_wire_together(fire_indices)
-        self.memorize_working_memory_as_shortterm_memory()
-        self.memorize_shortterm_memory_as_longterm_memory_or_drop()
 
-        return reminded_memories
+        return reminded_memories, reminded_indices
 
     @torch.no_grad()
-    def add_working_memory(self, data: torch.Tensor) -> None:
+    def adjust_lifespan_and_memories(self, indices: torch.Tensor, lifespan_delta: torch.Tensor):
+        """Adjust lifespan and memories"""
+        self.engrams.extend_lifespan(indices, lifespan_delta)
+        self.engrams.decrease_lifespan()
+
+        self._memorize_working_memory_as_shortterm_memory()
+        self._memorize_shortterm_memory_as_longterm_memory_or_drop()
+
+        self.engrams = self.engrams.select(self.engrams.lifespan > 0)
+
+    @torch.no_grad()
+    def _add_working_memory(self, data: torch.Tensor) -> None:
         """Add new working memories to engrams
 
         Args:
             data: working memory tensor shaped [BatchSize, MemoryLength, HiddenDim]
         """
-        self.engrams += Engrams(data, engrams_types=EngramType.WORKING)
+        self.engrams += Engrams(data, engrams_types=EngramType.WORKING, lifespan=self.initial_lifespan)
 
     @torch.no_grad()
-    def calculate_wm_stm_weight(self, working_memory: Engrams, shortterm_memory: Engrams) -> torch.Tensor:
+    def _calculate_wm_stm_weight(self, working_memory: Engrams, shortterm_memory: Engrams) -> torch.Tensor:
         """Calculate attention weight from working memories over shotterm memories
 
         Returns:
@@ -85,7 +101,7 @@ class Memoria:
         return weight
 
     @torch.no_grad()
-    def remind_shortterm_memory(self, weight: torch.Tensor, shortterm_memory_indices: torch.Tensor) -> torch.Tensor:
+    def _remind_shortterm_memory(self, weight: torch.Tensor, shortterm_memory_indices: torch.Tensor) -> torch.Tensor:
         """Remind shortterm memories by its working memories
 
         Args:
@@ -104,7 +120,7 @@ class Memoria:
         return reminded_shortterm_memory_indices
 
     @torch.no_grad()
-    def find_stm_nearest_to_ltm(self, weight: torch.Tensor, shortterm_memory_indices: torch.Tensor) -> torch.Tensor:
+    def _find_stm_nearest_to_ltm(self, weight: torch.Tensor, shortterm_memory_indices: torch.Tensor) -> torch.Tensor:
         """Get shortterm memory indices nearest to initial ltm by its working memories
 
         Args:
@@ -133,7 +149,7 @@ class Memoria:
         return nearest_stm_indices
 
     @torch.no_grad()
-    def find_initial_longterm_memory(self, nearest_shortterm_memory_indices: torch.Tensor) -> torch.Tensor:
+    def _find_initial_longterm_memory(self, nearest_shortterm_memory_indices: torch.Tensor) -> torch.Tensor:
         """Search nearest longterm memory indices
 
         Args:
@@ -164,7 +180,7 @@ class Memoria:
         return initial_ltm_indices
 
     @torch.no_grad()
-    def search_longterm_memories_with_initials(
+    def _search_longterm_memories_with_initials(
         self, initial_longterm_memory_indices: torch.Tensor, longterm_memory: Engrams
     ) -> torch.Tensor:
         """Find ltm engrams with initila ltm indices by dfs method
@@ -215,12 +231,12 @@ class Memoria:
         return found_ltm_indices
 
     @torch.no_grad()
-    def memorize_working_memory_as_shortterm_memory(self):
+    def _memorize_working_memory_as_shortterm_memory(self):
         """Move working memory to shortterm memory"""
         self.engrams.engrams_types[self.engrams.working_memory_mask] = EngramType.SHORTTERM.value
 
     @torch.no_grad()
-    def memorize_shortterm_memory_as_longterm_memory_or_drop(self):
+    def _memorize_shortterm_memory_as_longterm_memory_or_drop(self):
         """Move exceeded shortterm memory to longterm memory or drop"""
         stm_engrams, stm_indices = self.engrams.get_shortterm_memory()
         num_exceeded_stm = stm_engrams.memory_length - self.stm_capacity

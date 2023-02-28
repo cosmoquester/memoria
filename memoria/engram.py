@@ -316,3 +316,24 @@ class Engrams:
         self.induce_counts = selected.induce_counts
         self.engrams_types = selected.engrams_types
         self.lifespan = selected.lifespan
+
+    @torch.no_grad()
+    def extend_lifespan(self, indices: torch.Tensor, lifespan_delta: torch.Tensor):
+        """Extend lifespan of selected indices engrams by lifespan_delta
+
+        Args:
+            indices: indices of engrams to extend lifespan shaped [BatchSize, NumIndices]
+            lifespan_delta: the extended lifespan which will be added to engrams's lifespan
+                shaped [BatchSize, NumIndices]
+        """
+        indices[indices < 0] = -1
+        lifespan_delta_mask = torch.zeros(
+            [self.batch_size, self.memory_length + 1], dtype=float, device=indices.device, requires_grad=False
+        )
+        index_0 = torch.arange(self.batch_size, device=indices.device, requires_grad=False)
+        lifespan_delta_mask[index_0.unsqueeze(1), indices] += lifespan_delta
+        self.lifespan += lifespan_delta_mask[:, :-1]
+
+    @torch.no_grad()
+    def decrease_lifespan(self) -> None:
+        self.lifespan -= 1.0

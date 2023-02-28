@@ -78,7 +78,7 @@ class Memoria:
         self._memorize_working_memory_as_shortterm_memory()
         self._memorize_shortterm_memory_as_longterm_memory_or_drop()
 
-        self.engrams = self.engrams.select(self.engrams.lifespan > 0)
+        self.engrams = self.engrams.mask_select(self.engrams.lifespan > 0)
 
     @torch.no_grad()
     def _add_working_memory(self, data: torch.Tensor) -> None:

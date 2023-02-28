@@ -237,70 +237,15 @@ class Engrams:
         self.induce_counts += (mask.float().unsqueeze(2) @ mask.float().unsqueeze(1)).long()
 
     @torch.no_grad()
-    def mask_select(self, mask: torch.BoolTensor) -> "Engrams":
+    def mask_select(self, mask: torch.Tensor) -> "Engrams":
         """Select values with mask
 
         Args:
             mask: mask tensor select only true value indices shaped [BatchSize, MemoryLength]
                 which is same as self.data
         """
-        # [BatchSize]
-        num_memories_per_batch = mask.sum(dim=1)
-        max_num_memories = num_memories_per_batch.max()
-
-        # [BatchSize]
-        num_pad = max_num_memories - num_memories_per_batch
-
-        # [BatchSize, PadLength]
-        mask_pad = ~F.one_hot(num_pad).cumsum(dim=1).bool()
-        pad_length = mask_pad.size(1)
-
-        # [BatchSize, MemoryLength + PadLength]
-        padded_mask = torch.cat([mask, mask_pad], dim=1)
-
-        # [BatchSize, MemoryLength + PadLength, HiddenDim]
-        padded_data = torch.zeros(
-            [self.batch_size, self.memory_length + pad_length, self.hidden_dim],
-            dtype=self.data.dtype,
-            requires_grad=False,
-            device=self.data.device,
-        )
-        padded_data[:, : self.memory_length] = self.data
-
-        # [BatchSize, MemoryLength + PadLength]
-        padded_fire_count = torch.full_like(
-            padded_mask, -1, dtype=self.fire_count.dtype, requires_grad=False, device=self.fire_count.device
-        )
-        padded_fire_count[:, : self.memory_length] = self.fire_count
-
-        # [BatchSize, MemoryLength + PadLength]
-        padded_engram_types = torch.full_like(
-            padded_mask,
-            fill_value=EngramType.NULL.value,
-            dtype=self.engrams_types.dtype,
-            requires_grad=False,
-            device=self.engrams_types.device,
-        )
-        padded_engram_types[:, : self.memory_length] = self.engrams_types
-
-        # [BatchSize, MemoryLength + PadLength, MemoryLength + PadLength]
-        padded_induce_counts = torch.full(
-            [self.batch_size, self.memory_length + pad_length, self.memory_length + pad_length],
-            -1,
-            dtype=self.induce_counts.dtype,
-            requires_grad=False,
-            device=self.induce_counts.device,
-        )
-        padded_induce_counts[:, : self.memory_length, : self.memory_length] = self.induce_counts
-
-        padded_engrams = Engrams(padded_data, padded_fire_count, padded_induce_counts, padded_engram_types)
-
-        raw_indices = torch.arange(
-            self.memory_length + pad_length, requires_grad=False, device=padded_mask.device
-        ).unsqueeze(0)
-        indices = raw_indices.masked_select(padded_mask).view(self.batch_size, max_num_memories)
-
-        selected_engrams = padded_engrams.select(indices)
+        indices = self.get_indices_with_mask(mask)
+        selected_engrams = self.select(indices)
         return selected_engrams
 
     @torch.no_grad()

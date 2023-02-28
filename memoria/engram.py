@@ -2,7 +2,6 @@ from enum import Enum
 from typing import Optional, Tuple, Union
 
 import torch
-import torch.nn.functional as F
 
 
 class EngramType(Enum):
@@ -22,6 +21,7 @@ class Engrams:
         fire_count: fire count of each engram shaped [BatchSize, MemoryLength]
         induce_counts: induce count of each engram about each engram shaped [BatchSize, MemoryLength, MemoryLength]
         engrams_types: engram types of each engram shaped [BatchSize, MemoryLength]
+        lifespan: lifespan of each engram shaped [BatchSize, MemoryLength]
     """
 
     @torch.no_grad()
@@ -31,6 +31,7 @@ class Engrams:
         fire_count: Optional[torch.Tensor] = None,
         induce_counts: Optional[torch.Tensor] = None,
         engrams_types: Optional[Union[torch.Tensor, EngramType]] = None,
+        lifespan: Union[torch.Tensor, int] = 0,
     ) -> None:
         self.batch_size, self.memory_length, self.hidden_dim = data.shape
         self.data: torch.Tensor = data.detach()
@@ -57,6 +58,11 @@ class Engrams:
             if not isinstance(engrams_types, torch.Tensor)
             else engrams_types.detach()
         )
+        self.lifespan = (
+            torch.full_like(self.fire_count, lifespan, dtype=float, requires_grad=False, device=data.device)
+            if not isinstance(lifespan, torch.Tensor)
+            else lifespan.detach()
+        )
 
     @classmethod
     def empty(cls) -> "Engrams":
@@ -72,6 +78,7 @@ class Engrams:
             and (self.fire_count == other.fire_count).all()
             and (self.induce_counts == other.induce_counts).all()
             and (self.engrams_types == other.engrams_types).all()
+            and (self.lifespan == other.lifespan).all()
         )
 
     @torch.no_grad()
@@ -84,6 +91,7 @@ class Engrams:
         concatenated_data = torch.cat([self.data, other.data], dim=1)
         concatenated_fire_count = torch.cat([self.fire_count, other.fire_count], dim=1)
         concatenated_engrams_types = torch.cat([self.engrams_types, other.engrams_types], dim=1)
+        concatenated_lifespan = torch.cat([self.lifespan, other.lifespan], dim=1)
 
         new_memory_length = self.memory_length + other.memory_length
         concatenated_induce_counts = torch.zeros(
@@ -96,7 +104,11 @@ class Engrams:
         concatenated_induce_counts[:, self.memory_length :, self.memory_length :] = other.induce_counts
 
         return Engrams(
-            concatenated_data, concatenated_fire_count, concatenated_induce_counts, concatenated_engrams_types
+            concatenated_data,
+            concatenated_fire_count,
+            concatenated_induce_counts,
+            concatenated_engrams_types,
+            concatenated_lifespan,
         )
 
     @property
@@ -264,6 +276,7 @@ class Engrams:
             selected_fire_count = self.fire_count[:, indices]
             selected_induce_counts = self.induce_counts[:, indices][:, :, indices]
             selected_engrams_types = self.engrams_types[:, indices]
+            selected_lifespan = self.lifespan[:, indices]
         elif len(indices.shape) == 2:
             index_0 = torch.arange(self.batch_size, device=self.induce_counts.device, requires_grad=False)
             selected_data = self.data[index_0.unsqueeze(1), indices]
@@ -272,6 +285,7 @@ class Engrams:
                 index_0.unsqueeze(1).unsqueeze(2), indices.unsqueeze(2), indices.unsqueeze(1)
             ]
             selected_engrams_types = self.engrams_types[index_0.unsqueeze(1), indices]
+            selected_lifespan = self.lifespan[index_0.unsqueeze(1), indices]
 
             null_indices_mask = indices < 0
             reverse_mask = (~null_indices_mask).float()
@@ -279,7 +293,10 @@ class Engrams:
             selected_fire_count.masked_fill_(null_indices_mask, -1)
             selected_induce_counts.masked_fill_(~(reverse_mask.unsqueeze(2) @ reverse_mask.unsqueeze(1)).bool(), -1)
             selected_engrams_types.masked_fill_(null_indices_mask, EngramType.NULL.value)
-        return Engrams(selected_data, selected_fire_count, selected_induce_counts, selected_engrams_types)
+            selected_lifespan.masked_fill_(null_indices_mask, -1.0)
+        return Engrams(
+            selected_data, selected_fire_count, selected_induce_counts, selected_engrams_types, selected_lifespan
+        )
 
     @torch.no_grad()
     def delete(self, indices: torch.Tensor) -> None:
@@ -298,3 +315,4 @@ class Engrams:
         self.fire_count = selected.fire_count
         self.induce_counts = selected.induce_counts
         self.engrams_types = selected.engrams_types
+        self.lifespan = selected.lifespan

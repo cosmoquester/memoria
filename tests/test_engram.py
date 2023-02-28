@@ -346,3 +346,54 @@ def test_delete():
         )
     ).all()
     assert (engrams.fire_count == torch.tensor([[-1, 0, 0, 0], [0, 0, 0, 0]])).all()
+
+
+def test_lifespan():
+    data = torch.tensor(
+        [
+            [[1.0], [2.0], [3.0], [4.0], [5.0]],
+            [[6.0], [7.0], [8.0], [9.0], [10.0]],
+        ]
+    )
+    lifespan = torch.tensor(
+        [
+            [1.0, 2.0, 3.0, 4.0, 5.0],
+            [2.0, 3.0, 4.0, 5.0, 6.0],
+        ]
+    )
+    engrams = Engrams(data=data, lifespan=lifespan)
+
+    indices = torch.tensor(
+        [
+            [4, -1, 0],
+            [-1, 2, -1],
+        ]
+    )
+    lifespan_delta = torch.tensor(
+        [
+            [1.0, 2.0, 3.0],
+            [2.0, 3.0, 4.0],
+        ]
+    )
+    engrams.extend_lifespan(indices, lifespan_delta)
+
+    assert (
+        engrams.lifespan
+        == torch.tensor(
+            [
+                [4.0, 2.0, 3.0, 4.0, 6.0],
+                [2.0, 3.0, 7.0, 5.0, 6.0],
+            ]
+        )
+    ).all()
+
+    engrams.decrease_lifespan()
+    assert (
+        engrams.lifespan
+        == torch.tensor(
+            [
+                [3.0, 1.0, 2.0, 3.0, 5.0],
+                [1.0, 2.0, 6.0, 4.0, 5.0],
+            ]
+        )
+    ).all()

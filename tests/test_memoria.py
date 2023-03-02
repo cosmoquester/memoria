@@ -7,7 +7,7 @@ from memoria.memoria import Memoria
 def test_add_working_memory():
     memoria = Memoria(
         num_initial_ltm=3,
-        stm_threshold=0.5,
+        num_reminded_stm=10,
         ltm_search_depth=3,
         stm_capacity=100,
         ltm_min_fire_count=0,
@@ -20,7 +20,7 @@ def test_add_working_memory():
 def test_calculate_wm_stm_weight():
     memoria = Memoria(
         num_initial_ltm=3,
-        stm_threshold=0.5,
+        num_reminded_stm=10,
         ltm_search_depth=3,
         stm_capacity=100,
         ltm_min_fire_count=0,
@@ -37,7 +37,7 @@ def test_calculate_wm_stm_weight():
 def test_remind_shortterm_memory():
     memoria = Memoria(
         num_initial_ltm=3,
-        stm_threshold=0.5,
+        num_reminded_stm=2,
         ltm_search_depth=3,
         stm_capacity=100,
         ltm_min_fire_count=0,
@@ -53,7 +53,7 @@ def test_remind_shortterm_memory():
 def test_find_stm_nearest_to_ltm():
     memoria = Memoria(
         num_initial_ltm=2,
-        stm_threshold=0.5,
+        num_reminded_stm=10,
         ltm_search_depth=3,
         stm_capacity=100,
         ltm_min_fire_count=0,
@@ -74,7 +74,7 @@ def test_find_initial_ltm():
     num_ltm = 4
     memoria = Memoria(
         num_initial_ltm=num_initial_ltm,
-        stm_threshold=0.5,
+        num_reminded_stm=10,
         ltm_search_depth=3,
         stm_capacity=100,
         ltm_min_fire_count=0,
@@ -110,7 +110,7 @@ def test_search_longterm_memories_with_initials():
     ltm_search_depth = 3
     memoria = Memoria(
         num_initial_ltm=num_initial_ltm,
-        stm_threshold=0.5,
+        num_reminded_stm=10,
         ltm_search_depth=ltm_search_depth,
         stm_capacity=100,
         ltm_min_fire_count=0,
@@ -137,7 +137,7 @@ def test_memorize_working_memory_as_shortterm_memory():
     ltm_search_depth = 3
     memoria = Memoria(
         num_initial_ltm=num_initial_ltm,
-        stm_threshold=0.5,
+        num_reminded_stm=10,
         ltm_search_depth=ltm_search_depth,
         stm_capacity=100,
         ltm_min_fire_count=0,
@@ -163,7 +163,7 @@ def test_memorize_shortterm_memory_as_longterm_memory_or_drop():
     ltm_min_fire_count = 2
     memoria = Memoria(
         num_initial_ltm=num_initial_ltm,
-        stm_threshold=0.5,
+        num_reminded_stm=10,
         ltm_search_depth=ltm_search_depth,
         stm_capacity=2,
         ltm_min_fire_count=ltm_min_fire_count,
@@ -182,13 +182,13 @@ def test_memorize_shortterm_memory_as_longterm_memory_or_drop():
 
 def test_remind():
     num_initial_ltm = 3
-    threshold_stm = 0.1
+    num_reminded_stm = 2
     ltm_search_depth = 3
     stm_capacity = 100
     ltm_min_fire_count = 2
     memoria = Memoria(
         num_initial_ltm=num_initial_ltm,
-        stm_threshold=threshold_stm,
+        num_reminded_stm=num_reminded_stm,
         ltm_search_depth=ltm_search_depth,
         stm_capacity=stm_capacity,
         ltm_min_fire_count=ltm_min_fire_count,
@@ -217,7 +217,7 @@ def test_remind():
 def test_reset_memory():
     memoria = Memoria(
         num_initial_ltm=3,
-        stm_threshold=0.5,
+        num_reminded_stm=10,
         ltm_search_depth=3,
         stm_capacity=100,
         ltm_min_fire_count=0,

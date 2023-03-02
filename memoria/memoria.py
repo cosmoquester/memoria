@@ -10,7 +10,7 @@ class Memoria:
 
     def __init__(
         self,
-        stm_threshold: float,
+        num_reminded_stm: float,
         stm_capacity: int,
         num_initial_ltm: int,
         ltm_search_depth: int,
@@ -20,7 +20,7 @@ class Memoria:
         """
 
         Args:
-            stm_threshold: minimum score to remind shortterm memory, this is between 0 and 1.
+            num_reminded_stm: the number of stm reminded
             stm_capacity: the maximum memory length per batch for shortterm memory
             num_initial_ltm: initial longterm memory to search relevant longterm memories per query.
             ltm_search_depth: the maximum number of depth for dfs memory search
@@ -29,7 +29,7 @@ class Memoria:
         """
         self.engrams = Engrams.empty()
 
-        self.stm_threshold: float = stm_threshold
+        self.num_reminded_stm: float = num_reminded_stm
         self.stm_capacity: int = stm_capacity
         self.num_initial_ltm: int = num_initial_ltm
         self.ltm_search_depth: int = ltm_search_depth
@@ -115,9 +115,13 @@ class Memoria:
         # [BatchSize, ShorttermMemoryLength]
         stm_weight = weight.mean(dim=1)
 
-        mask = stm_weight < self.stm_threshold
-        reminded_shortterm_memory_indices = shortterm_memory_indices.masked_fill(mask, -1)
-        return reminded_shortterm_memory_indices
+        _, reminded_indices = stm_weight.topk(min(self.num_reminded_stm, stm_weight.size(1)), dim=1)
+        reminded_mask = torch.zeros_like(
+            shortterm_memory_indices, dtype=bool, device=weight.device, requires_grad=False
+        )
+        index_0 = torch.arange(weight.size(0), device=weight.device, requires_grad=False)
+        reminded_mask[index_0.unsqueeze(1), reminded_indices] = True
+        return shortterm_memory_indices.masked_fill_(~reminded_mask, -1)
 
     @torch.no_grad()
     def _find_stm_nearest_to_ltm(self, weight: torch.Tensor, shortterm_memory_indices: torch.Tensor) -> torch.Tensor:

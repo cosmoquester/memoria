@@ -16,6 +16,8 @@ class Memoria:
         ltm_search_depth: int,
         ltm_min_fire_count: int,
         initial_lifespan: int,
+        enable_stm: bool = True,
+        enable_ltm: bool = True,
     ) -> None:
         """
 
@@ -26,6 +28,10 @@ class Memoria:
             ltm_search_depth: the maximum number of depth for dfs memory search
             ltm_min_fire_count: the minimum fire count value to memorize shortterm memory into longterm memory.
             initial_lifespan: initial lifespan for each engrams
+            enable_stm: whether to use shortterm memory.
+                this module will not return shortterm memory indices, but keep shortterm memory
+                to remind longterm memory. so when `enable ltm` is True.
+            enable_ltm: whether to use longterm memory. this module will keep shortterm and longterm memories.
         """
         self.engrams = Engrams.empty()
 
@@ -35,6 +41,8 @@ class Memoria:
         self.ltm_search_depth: int = ltm_search_depth
         self.ltm_min_fire_count: int = ltm_min_fire_count
         self.initial_lifespan: int = initial_lifespan
+        self.enable_stm: bool = enable_stm
+        self.enable_ltm: bool = enable_ltm
 
     @torch.no_grad()
     def remind(self, data: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -61,11 +69,21 @@ class Memoria:
         reminded_ltm_indices = reminded_ltm_indices.view(reminded_ltm_indices.size(0), -1)
 
         reminded_indices = torch.cat([reminded_stm_indices, reminded_ltm_indices], dim=1)
-        # [BatchSize, RemindedMemoryLength, HiddenDim]
-        reminded_memories = self.engrams.select(reminded_indices).data
 
         fire_indices = torch.cat([wm_indices, reminded_indices], dim=1)
         self.engrams.fire_together_wire_together(fire_indices)
+
+        if not self.enable_stm and not self.enable_ltm:
+            reminded_indices = torch.zeros(
+                [self.engrams.batch_size, 0], requires_grad=False, device=data.device, dtype=torch.long
+            )
+        elif self.enable_stm:
+            reminded_indices = reminded_stm_indices
+        elif self.enable_ltm:
+            reminded_indices = reminded_ltm_indices
+
+        # [BatchSize, RemindedMemoryLength, HiddenDim]
+        reminded_memories = self.engrams.select(reminded_indices).data
 
         return reminded_memories, reminded_indices
 

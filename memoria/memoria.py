@@ -127,19 +127,24 @@ class Memoria:
                 shaped [BatchSize, WorkingMemoryLength, ShorttermMemoryLength]
             shortterm_memory_indices: global indices of shortterm memories shaped [BatchSize, ShorttermMemoryLength]
         Returns:
-            indices selected shortterm memory indices shaped [BatchSize, SelectedMemoryLength]
+            indices selected shortterm memory indices shaped [BatchSize, WorkingMemoryLength, SelectedMemoryLength]
             -1 means not reminded, non-negative intergers is reminded
         """
-        # [BatchSize, ShorttermMemoryLength]
-        stm_weight = weight.mean(dim=1)
-
-        _, reminded_indices = stm_weight.topk(min(self.num_reminded_stm, stm_weight.size(1)), dim=1)
-        reminded_mask = torch.zeros_like(
-            shortterm_memory_indices, dtype=bool, device=weight.device, requires_grad=False
+        # [BatchSize, WorkingMemoryLength, SelectedMemoryLength]
+        _, reminded_indices = weight.topk(min(self.num_reminded_stm, weight.size(2)), dim=2)
+        batch_size, working_memory_length, _ = reminded_indices.shape
+        reminded_mask = torch.zeros(
+            [batch_size, working_memory_length, shortterm_memory_indices.size(1)],
+            dtype=bool,
+            device=weight.device,
+            requires_grad=False,
         )
-        index_0 = torch.arange(weight.size(0), device=weight.device, requires_grad=False)
-        reminded_mask[index_0.unsqueeze(1), reminded_indices] = True
-        return shortterm_memory_indices.masked_fill_(~reminded_mask, -1)
+        index_0 = torch.arange(weight.size(0), device=weight.device, requires_grad=False)[:, None, None]
+        index_1 = torch.arange(working_memory_length, device=weight.device, requires_grad=False)[None, :, None]
+        reminded_mask[index_0, index_1, reminded_indices] = True
+        return (
+            shortterm_memory_indices.unsqueeze(1).repeat(1, working_memory_length, 1).masked_fill_(~reminded_mask, -1)
+        )
 
     @torch.no_grad()
     def _find_stm_nearest_to_ltm(self, weight: torch.Tensor, shortterm_memory_indices: torch.Tensor) -> torch.Tensor:

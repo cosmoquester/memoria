@@ -13,7 +13,7 @@ def test_add_working_memory():
         ltm_min_fire_count=0,
         initial_lifespan=100,
     )
-    memoria._add_working_memory(torch.randn(3, 10, 32))
+    memoria.add_working_memory(torch.randn(3, 10, 32))
     assert len(memoria.engrams) == 30
 
 
@@ -26,7 +26,7 @@ def test_calculate_wm_stm_weight():
         ltm_min_fire_count=0,
         initial_lifespan=100,
     )
-    memoria._add_working_memory(torch.randn(3, 10, 32))
+    memoria.add_working_memory(torch.randn(3, 10, 32))
 
     wm = Engrams(torch.randn(3, 10, 32))
     stm = Engrams(torch.randn(3, 20, 32), engrams_types=EngramType.SHORTTERM)
@@ -198,31 +198,43 @@ def test_remind():
     batch_size = 3
     memory_length = 50
     hidden_dim = 32
-    outputs, indices = memoria.remind(torch.randn(batch_size, memory_length, hidden_dim))
+    working_memory = torch.randn(batch_size, memory_length, hidden_dim)
+    memoria.add_working_memory(working_memory)
+    outputs, indices = memoria.remind()
     memoria.adjust_lifespan_and_memories(indices, torch.ones_like(indices, dtype=float))
     assert len(memoria.engrams.get_shortterm_memory()[0]) == batch_size * memory_length
     assert outputs.size(1) == 0
 
-    outputs, indices = memoria.remind(torch.randn(batch_size, memory_length, hidden_dim))
+    working_memory = torch.randn(batch_size, memory_length, hidden_dim)
+    memoria.add_working_memory(working_memory)
+    outputs, indices = memoria.remind()
     memoria.adjust_lifespan_and_memories(indices, torch.ones_like(indices, dtype=float))
     assert len(memoria.engrams.get_shortterm_memory()[0]) == batch_size * memory_length * 2
     assert outputs.size(1) > 0
 
-    outputs, indices = memoria.remind(torch.randn(batch_size, memory_length, hidden_dim))
+    working_memory = torch.randn(batch_size, memory_length, hidden_dim)
+    memoria.add_working_memory(working_memory)
+    outputs, indices = memoria.remind()
     memoria.adjust_lifespan_and_memories(indices, torch.ones_like(indices, dtype=float))
     assert len(memoria.engrams.get_shortterm_memory()[0]) == batch_size * memory_length * 2
     assert outputs.size(1) > 0
 
     memoria.enable_stm = False
-    outputs, indices = memoria.remind(torch.randn(batch_size, memory_length, hidden_dim))
+    working_memory = torch.randn(batch_size, memory_length, hidden_dim)
+    memoria.add_working_memory(working_memory)
+    outputs, indices = memoria.remind()
     assert (memoria.engrams.select(indices).engrams_types != EngramType.SHORTTERM.value).all()
 
     memoria.enable_ltm = False
-    outputs, indices = memoria.remind(torch.randn(batch_size, memory_length, hidden_dim))
+    working_memory = torch.randn(batch_size, memory_length, hidden_dim)
+    memoria.add_working_memory(working_memory)
+    outputs, indices = memoria.remind()
     assert indices.numel() == 0
 
     memoria.enable_stm = True
-    outputs, indices = memoria.remind(torch.randn(batch_size, memory_length, hidden_dim))
+    working_memory = torch.randn(batch_size, memory_length, hidden_dim)
+    memoria.add_working_memory(working_memory)
+    outputs, indices = memoria.remind()
     assert (memoria.engrams.select(indices).engrams_types != EngramType.LONGTERM.value).all()
 
 
@@ -235,6 +247,6 @@ def test_reset_memory():
         ltm_min_fire_count=0,
         initial_lifespan=100,
     )
-    memoria._add_working_memory(torch.randn(3, 10, 32))
+    memoria.add_working_memory(torch.randn(3, 10, 32))
     memoria.reset_memory()
     assert memoria.engrams == Engrams.empty()

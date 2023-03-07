@@ -45,18 +45,23 @@ class Memoria:
         self.enable_ltm: bool = enable_ltm
 
     @torch.no_grad()
-    def remind(self, data: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Remind and memorize, drop memories
+    def add_working_memory(self, data: torch.Tensor) -> None:
+        """Add new working memories to engrams
 
         Args:
             data: input data which is working memory shaped [BatchSize, WorkingMemoryLength, HiddenDim]
+        """
+        self.engrams += Engrams(data, engrams_types=EngramType.WORKING, lifespan=self.initial_lifespan)
+
+    @torch.no_grad()
+    def remind(self) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Remind with current working memory and memorize, drop memories
+
         Return:
             reminded indices, data not containing working memory
             data shaped [BatchSize, RemindedMemoryLength, HiddenDim]
             indices shaped [BatchSize, RemindedMemoryLength]
         """
-        self._add_working_memory(data)
-
         wm_engrams, wm_indices = self.engrams.get_working_memory()
         stm_engrams, stm_indices = self.engrams.get_shortterm_memory()
         ltm_engrams, _ = self.engrams.get_longterm_memory()
@@ -75,7 +80,7 @@ class Memoria:
 
         if not self.enable_stm and not self.enable_ltm:
             reminded_indices = torch.zeros(
-                [self.engrams.batch_size, 0], requires_grad=False, device=data.device, dtype=torch.long
+                [self.engrams.batch_size, 0], requires_grad=False, device=self.engrams.data.device, dtype=torch.long
             )
         elif self.enable_stm:
             reminded_indices = reminded_stm_indices
@@ -97,15 +102,6 @@ class Memoria:
         self._memorize_shortterm_memory_as_longterm_memory_or_drop()
 
         self.engrams = self.engrams.mask_select(self.engrams.lifespan > 0)
-
-    @torch.no_grad()
-    def _add_working_memory(self, data: torch.Tensor) -> None:
-        """Add new working memories to engrams
-
-        Args:
-            data: working memory tensor shaped [BatchSize, MemoryLength, HiddenDim]
-        """
-        self.engrams += Engrams(data, engrams_types=EngramType.WORKING, lifespan=self.initial_lifespan)
 
     @torch.no_grad()
     def _calculate_wm_stm_weight(self, working_memory: Engrams, shortterm_memory: Engrams) -> torch.Tensor:

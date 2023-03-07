@@ -63,8 +63,7 @@ class Memoria:
 
         weight = self._calculate_wm_stm_weight(wm_engrams, stm_engrams)
         reminded_stm_indices = self._remind_shortterm_memory(weight, stm_indices)
-        nearest_stm_indices = self._find_stm_nearest_to_ltm(weight, stm_indices)
-        initial_ltm_indices = self._find_initial_longterm_memory(nearest_stm_indices)
+        initial_ltm_indices = self._find_initial_longterm_memory(reminded_stm_indices)
         reminded_ltm_indices = self._search_longterm_memories_with_initials(initial_ltm_indices, ltm_engrams)
         reminded_ltm_indices = reminded_ltm_indices.view(reminded_ltm_indices.size(0), -1)
 
@@ -142,68 +141,40 @@ class Memoria:
         index_0 = torch.arange(weight.size(0), device=weight.device, requires_grad=False)[:, None, None]
         index_1 = torch.arange(working_memory_length, device=weight.device, requires_grad=False)[None, :, None]
         reminded_mask[index_0, index_1, reminded_indices] = True
-        return (
+
+        reminded_stm_indices = (
             shortterm_memory_indices.unsqueeze(1).repeat(1, working_memory_length, 1).masked_fill_(~reminded_mask, -1)
         )
+        return reminded_stm_indices
 
     @torch.no_grad()
-    def _find_stm_nearest_to_ltm(self, weight: torch.Tensor, shortterm_memory_indices: torch.Tensor) -> torch.Tensor:
-        """Get shortterm memory indices nearest to initial ltm by its working memories
-
-        Args:
-            weight: attention weights got from `calculate_wm_stm_weight` method
-                shaped [BatchSize, WorkingMemoryLength, ShorttermMemoryLength]
-            shortterm_memory_indices: global indices of shortterm memories shaped [BatchSize, ShorttermMemoryLength]
-        Returns:
-            indices selected shortterm memory indices shaped [BatchSize, NumInitialLTMs]
-                -1 means unselected. other values mean selected
-        """
-        # [BatchSize, WorkingMemoryLength, FiringShorttermMemories]
-        _, top_indices = weight.topk(k=min(self.num_initial_ltm, weight.size(2)), dim=2)
-
-        # [BatchSize, WorkingMemoryLength * FiringShorttermMemories]
-        top_indices = top_indices.view(weight.size(0), -1)
-
-        # Get STM Indices Nearest to Initial LTM
-        batch_size = weight.size(0)
-        index_0 = torch.arange(batch_size, requires_grad=False, device=weight.device).unsqueeze(1)
-        nearest_stm_mask = torch.zeros_like(
-            shortterm_memory_indices, requires_grad=False, device=weight.device, dtype=torch.bool
-        )
-        nearest_stm_mask[index_0, top_indices] = True
-        nearest_stm_indices = shortterm_memory_indices.masked_fill(~nearest_stm_mask, -1)
-        nearest_stm_indices = torch.unique(nearest_stm_indices, dim=1)  # Not necessary
-        return nearest_stm_indices
-
-    @torch.no_grad()
-    def _find_initial_longterm_memory(self, nearest_shortterm_memory_indices: torch.Tensor) -> torch.Tensor:
+    def _find_initial_longterm_memory(self, reminded_stm_indices: torch.Tensor) -> torch.Tensor:
         """Search nearest longterm memory indices
 
         Args:
-            nearest_shortterm_memory_indices: shortterm memory indices shaped [BatchSize, NumInitialLTMs]
-                got from `find_stm_nearest_to_ltm` method
+            reminded_stm_indices: shortterm memory indices shaped [BatchSize, WorkingMemoryLength, NumInitialLTMs]
         Return:
-            initial longterm memory indices to be reminded shaped [BatchSize, NumInitialLTMs]
+            initial longterm memory indices to be reminded shaped [BatchSize, WorkingMemoryLength, NumInitialLTMs]
         """
-        index_0 = torch.arange(
-            nearest_shortterm_memory_indices.size(0),
-            requires_grad=False,
-            device=nearest_shortterm_memory_indices.device,
-        ).unsqueeze(1)
-        # [BatchSize, NumInitialLTMs, MemoryLength]
-        induce_counts = self.engrams.induce_counts[index_0, nearest_shortterm_memory_indices]
+        batch_size, working_memory_length, num_initial_ltms = reminded_stm_indices.shape
+        device = reminded_stm_indices.device
+        index_0 = torch.arange(batch_size, requires_grad=False, device=device)[:, None, None]
+        # [BatchSize, WorkingMemoryLength, NumInitialLTMs, MemoryLength]
+        induce_counts = self.engrams.induce_counts[index_0, reminded_stm_indices]
         # [BatchSize, MemoryLength]
         ltm_mask = self.engrams.longterm_memory_mask
 
-        induce_counts.masked_fill_(~ltm_mask.unsqueeze(1), -1)
+        induce_counts.masked_fill_(~ltm_mask[:, None, None, :], -1)
 
-        # [BatchSize, NumInitialLTMs]
-        initial_ltm_indices = induce_counts.argmax(dim=2)
+        # [BatchSize, WorkingMemoryLength, NumInitialLTMs]
+        initial_ltm_indices = induce_counts.argmax(dim=3)
+        initial_ltm_indices = initial_ltm_indices.view(batch_size, working_memory_length * num_initial_ltms)
         initial_ltm = self.engrams.select(initial_ltm_indices)
         initial_ltm_indices.masked_fill_(initial_ltm.engrams_types != EngramType.LONGTERM.value, -1)
+        initial_ltm_indices = initial_ltm_indices.view(batch_size, working_memory_length, num_initial_ltms)
 
-        # [BatchSize, NumUniqueInitialLTMs]
-        initial_ltm_indices = torch.unique(initial_ltm_indices, dim=1)
+        # [BatchSize, WorkingMemoryLength, NumUniqueInitialLTMs]
+        initial_ltm_indices = torch.unique(initial_ltm_indices, dim=2)
         return initial_ltm_indices
 
     @torch.no_grad()
@@ -213,12 +184,16 @@ class Memoria:
         """Find ltm engrams with initila ltm indices by dfs method
 
         Args:
-            initial_longterm_memory_indices: initial ltm indices shaped [BatchSize, NumUniqueInitialLTMs]
+            initial_longterm_memory_indices: initial ltm indices
+                shaped [BatchSize, WorkingMemoryLength, NumUniqueInitialLTMs]
             longterm_memory: longterm memory engrams
         Return:
-            searched ltm indices shaped [BatchSize, SearchDepth + 1, NumUniqueInitialLTMs]
+            searched ltm indices shaped [BatchSize, WorkingMemoryLength, SearchDepth + 1, NumUniqueInitialLTMs]
         """
-        batch_size, num_init_ltms = initial_longterm_memory_indices.shape
+        batch_size, working_memory_length, num_init_ltms = initial_longterm_memory_indices.shape
+        initial_longterm_memory_indices = initial_longterm_memory_indices.view(
+            batch_size, working_memory_length * num_init_ltms
+        )
         local_initial_ltm_indices = self.engrams.get_local_indices_from_global_indices(
             self.engrams.longterm_memory_mask, initial_longterm_memory_indices
         )

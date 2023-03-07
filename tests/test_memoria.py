@@ -47,25 +47,7 @@ def test_remind_shortterm_memory():
     weight = torch.tensor([[[0.51, 0.2, 0.2, 0.8]]])
     shortterm_memory_indices = torch.tensor([[1, 2, 3, 4]])
     reminded = memoria._remind_shortterm_memory(weight, shortterm_memory_indices)
-    assert (reminded == torch.tensor([[1, -1, -1, 4]])).all()
-
-
-def test_find_stm_nearest_to_ltm():
-    memoria = Memoria(
-        num_initial_ltm=2,
-        num_reminded_stm=10,
-        ltm_search_depth=3,
-        stm_capacity=100,
-        ltm_min_fire_count=0,
-        initial_lifespan=100,
-    )
-
-    weight = torch.tensor([[[0.51, 0.2, 0.9, 0.8], [0.9, 0.1, 0.2, 0.5]]])
-    shortterm_memory_indices = torch.tensor([[1, 2, 3, 4]])
-
-    nearest_stm_indices = memoria._find_stm_nearest_to_ltm(weight, shortterm_memory_indices)
-
-    assert (nearest_stm_indices == torch.tensor([[-1, 1, 3, 4]])).all()
+    assert (reminded == torch.tensor([[[1, -1, -1, 4]]])).all()
 
 
 def test_find_initial_ltm():
@@ -97,10 +79,10 @@ def test_find_initial_ltm():
         ]
     )
     memoria.engrams.induce_counts[:, :num_stm, :num_stm] = 999
-    nearest_stm_indices = torch.tensor([[0, 2, 3]])
+    nearest_stm_indices = torch.tensor([[[0, 2, 3]]])
 
     initial_ltm_indices = memoria._find_initial_longterm_memory(nearest_stm_indices)
-    assert (initial_ltm_indices == torch.tensor([[6, 7]])).all()
+    assert (initial_ltm_indices == torch.tensor([[[6, 7]]])).all()
 
 
 def test_search_longterm_memories_with_initials():

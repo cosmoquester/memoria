@@ -170,8 +170,9 @@ def test_memorize_shortterm_memory_as_longterm_memory_or_drop():
         initial_lifespan=100,
     )
 
-    fire_count = torch.tensor([[0, 1, 2, 3, 0]])
-    stm = Engrams(torch.randn(batch_size, num_stm, 32), engrams_types=EngramType.SHORTTERM, fire_count=fire_count)
+    fire_count = torch.tensor([[0, 1, 2, 3, 0]], dtype=torch.int32)
+    stm = Engrams(torch.randn(batch_size, num_stm, 32), engrams_types=EngramType.SHORTTERM)
+    stm.fire_count = fire_count
     ltm = Engrams(torch.randn(batch_size, num_ltm, 32), engrams_types=EngramType.LONGTERM)
     memoria.engrams = stm + ltm
 

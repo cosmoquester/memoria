@@ -34,39 +34,41 @@ class Engrams:
         lifespan: Union[torch.Tensor, int] = 0,
     ) -> None:
         self.batch_size, self.memory_length, self.hidden_dim = data.shape
-        self.data: torch.Tensor = data.detach()
+        self.data: torch.Tensor = data.detach().float()
         self.fire_count: torch.Tensor = (
-            torch.zeros([self.batch_size, self.memory_length], dtype=int, requires_grad=False, device=data.device)
+            torch.zeros(
+                [self.batch_size, self.memory_length], dtype=torch.int32, requires_grad=False, device=data.device
+            )
             if fire_count is None
             else fire_count.detach()
         )
         self.induce_counts: torch.Tensor = (
             torch.zeros(
                 [self.batch_size, self.memory_length, self.memory_length],
-                dtype=int,
+                dtype=torch.int32,
                 requires_grad=False,
                 device=data.device,
             )
             if induce_counts is None
-            else induce_counts.detach()
+            else induce_counts.detach().type(torch.int32)
         )
         default_engram_type = engrams_types if isinstance(engrams_types, EngramType) else EngramType.WORKING
         self.engrams_types = (
             torch.full_like(
-                self.fire_count, default_engram_type.value, dtype=int, requires_grad=False, device=data.device
+                self.fire_count, default_engram_type.value, dtype=torch.uint8, requires_grad=False, device=data.device
             )
             if not isinstance(engrams_types, torch.Tensor)
-            else engrams_types.detach()
+            else engrams_types.detach().type(torch.uint8)
         )
         self.lifespan = (
-            torch.full_like(self.fire_count, lifespan, dtype=float, requires_grad=False, device=data.device)
+            torch.full_like(self.fire_count, lifespan, dtype=torch.float32, requires_grad=False, device=data.device)
             if not isinstance(lifespan, torch.Tensor)
-            else lifespan.detach()
+            else lifespan.detach().type(torch.float32)
         )
 
     @classmethod
     def empty(cls) -> "Engrams":
-        return cls(torch.zeros([0, 0, 0], dtype=torch.int, requires_grad=False))
+        return cls(torch.zeros([0, 0, 0], dtype=torch.float32, requires_grad=False))
 
     def __len__(self) -> int:
         return self.fire_count.numel()
@@ -96,7 +98,7 @@ class Engrams:
         new_memory_length = self.memory_length + other.memory_length
         concatenated_induce_counts = torch.zeros(
             [self.batch_size, new_memory_length, new_memory_length],
-            dtype=int,
+            dtype=torch.int32,
             requires_grad=False,
             device=self.data.device,
         )
@@ -144,7 +146,10 @@ class Engrams:
             indices = indices.view(self.batch_size, max_num_memories)
             return indices
 
-        valued_mask = torch.arange(self.memory_length, device=mask.device, requires_grad=False).unsqueeze(0) * mask
+        valued_mask = (
+            torch.arange(self.memory_length, device=mask.device, dtype=torch.long, requires_grad=False).unsqueeze(0)
+            * mask
+        )
         valued_mask.masked_fill_(~mask, -1)
         sorted_values, _ = torch.sort(valued_mask, dim=1)
         indices = sorted_values[:, -max_num_memories:]
@@ -163,7 +168,12 @@ class Engrams:
         mask = torch.zeros(
             [self.batch_size, self.memory_length + 1], dtype=torch.bool, device=indices.device, requires_grad=False
         )
-        index_0 = torch.arange(self.batch_size, device=indices.device, requires_grad=False).unsqueeze(1)
+        index_0 = torch.arange(
+            self.batch_size,
+            device=indices.device,
+            dtype=torch.long,
+            requires_grad=False,
+        ).unsqueeze(1)
         mask[index_0, indices] = True
         mask = mask[:, :-1]
         return mask
@@ -226,7 +236,9 @@ class Engrams:
         selected_partial_mask = torch.full_like(
             partial_mask, False, requires_grad=False, device=partial_mask.device, dtype=torch.bool
         )
-        index_0 = torch.arange(self.batch_size, requires_grad=False, device=partial_mask.device).unsqueeze(1)
+        index_0 = torch.arange(
+            self.batch_size, requires_grad=False, device=partial_mask.device, dtype=torch.long
+        ).unsqueeze(1)
         selected_partial_mask[index_0, global_indices] = True
 
         # [BatchSize, NumLTMems]
@@ -246,7 +258,7 @@ class Engrams:
         """
         mask = self.get_mask_with_indices(indices)
         self.fire_count += mask
-        self.induce_counts += (mask.float().unsqueeze(2) @ mask.float().unsqueeze(1)).long()
+        self.induce_counts += (mask.float().unsqueeze(2) @ mask.float().unsqueeze(1)).int()
 
     @torch.no_grad()
     def mask_select(self, mask: torch.Tensor) -> "Engrams":
@@ -328,7 +340,7 @@ class Engrams:
         """
         indices[indices < 0] = -1
         lifespan_delta_mask = torch.zeros(
-            [self.batch_size, self.memory_length + 1], dtype=float, device=indices.device, requires_grad=False
+            [self.batch_size, self.memory_length + 1], dtype=torch.float32, device=indices.device, requires_grad=False
         )
         index_0 = torch.arange(self.batch_size, device=indices.device, requires_grad=False)
         lifespan_delta_mask[index_0.unsqueeze(1), indices] += lifespan_delta

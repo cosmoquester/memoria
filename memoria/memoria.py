@@ -133,7 +133,7 @@ class Memoria:
         reminded_mask = torch.zeros_like(
             shortterm_memory_indices, dtype=bool, device=weight.device, requires_grad=False
         )
-        index_0 = torch.arange(weight.size(0), device=weight.device, requires_grad=False)
+        index_0 = torch.arange(weight.size(0), device=weight.device, requires_grad=False, dtype=torch.long)
         reminded_mask[index_0.unsqueeze(1), reminded_indices] = True
         return shortterm_memory_indices.masked_fill_(~reminded_mask, -1)
 
@@ -157,7 +157,7 @@ class Memoria:
 
         # Get STM Indices Nearest to Initial LTM
         batch_size = weight.size(0)
-        index_0 = torch.arange(batch_size, requires_grad=False, device=weight.device).unsqueeze(1)
+        index_0 = torch.arange(batch_size, requires_grad=False, device=weight.device, dtype=torch.long).unsqueeze(1)
         nearest_stm_mask = torch.zeros_like(
             shortterm_memory_indices, requires_grad=False, device=weight.device, dtype=torch.bool
         )
@@ -231,7 +231,9 @@ class Memoria:
             dtype=local_initial_ltm_indices.dtype,
         )
 
-        index_0 = torch.arange(batch_size, device=local_initial_ltm_indices.device, requires_grad=False).unsqueeze(1)
+        index_0 = torch.arange(
+            batch_size, device=local_initial_ltm_indices.device, requires_grad=False, dtype=torch.long
+        ).unsqueeze(1)
         found_ltm_indices[:, 0] = local_initial_ltm_indices
         unreachable[index_0, local_initial_ltm_indices] = True
 
@@ -264,7 +266,9 @@ class Memoria:
 
         # [BatchSize, NumExceededSTMems]
         exceeded_stm_indices = stm_indices[:, :num_exceeded_stm]
-        index_0 = torch.arange(self.engrams.batch_size, device=stm_indices.device, requires_grad=False).unsqueeze(1)
+        index_0 = torch.arange(
+            self.engrams.batch_size, device=stm_indices.device, requires_grad=False, dtype=torch.long
+        ).unsqueeze(1)
         # [BatchSize, NumExceededSTMems]
         exceeded_stm_fire_counts = self.engrams.fire_count[index_0, exceeded_stm_indices]
 

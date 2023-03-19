@@ -82,9 +82,9 @@ class Memoria:
             reminded_indices = torch.zeros(
                 [self.engrams.batch_size, 0], requires_grad=False, device=self.engrams.data.device, dtype=torch.long
             )
-        elif self.enable_stm:
+        elif not self.enable_ltm:
             reminded_indices = reminded_stm_indices
-        elif self.enable_ltm:
+        elif not self.enable_stm:
             reminded_indices = reminded_ltm_indices
 
         # [BatchSize, RemindedMemoryLength, HiddenDim]

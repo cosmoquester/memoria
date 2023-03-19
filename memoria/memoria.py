@@ -190,7 +190,9 @@ class Memoria:
         induce_counts.masked_fill_(~ltm_mask.unsqueeze(1), -1)
 
         # [BatchSize, NumInitialLTMs]
-        initial_ltm_indices = induce_counts.argmax(dim=2)
+        # Find initial ltm indices with random tie-breaking
+        max_mask = induce_counts == induce_counts.max(dim=2).values.unsqueeze(dim=2)
+        initial_ltm_indices = (torch.rand_like(max_mask.type(torch.float16)) * max_mask).argmax(dim=2)
         initial_ltm = self.engrams.select(initial_ltm_indices)
         initial_ltm_indices.masked_fill_(initial_ltm.engrams_types != EngramType.LONGTERM.value, -1)
 

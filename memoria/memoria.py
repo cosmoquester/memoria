@@ -135,7 +135,7 @@ class Memoria:
         )
         index_0 = torch.arange(weight.size(0), device=weight.device, requires_grad=False, dtype=torch.long)
         reminded_mask[index_0.unsqueeze(1), reminded_indices] = True
-        return shortterm_memory_indices.masked_fill_(~reminded_mask, -1)
+        return shortterm_memory_indices.masked_fill(~reminded_mask, -1)
 
     @torch.no_grad()
     def _find_stm_nearest_to_ltm(self, weight: torch.Tensor, shortterm_memory_indices: torch.Tensor) -> torch.Tensor:
@@ -149,14 +149,15 @@ class Memoria:
             indices selected shortterm memory indices shaped [BatchSize, NumInitialLTMs]
                 -1 means unselected. other values mean selected
         """
+        batch_size, _, num_stms = weight.size()
+
         # [BatchSize, WorkingMemoryLength, FiringShorttermMemories]
-        _, top_indices = weight.topk(k=min(self.num_initial_ltm, weight.size(2)), dim=2)
+        _, top_indices = weight.topk(k=min(self.num_initial_ltm, num_stms), dim=2)
 
         # [BatchSize, WorkingMemoryLength * FiringShorttermMemories]
-        top_indices = top_indices.view(weight.size(0), -1)
+        top_indices = top_indices.view(batch_size, -1)
 
         # Get STM Indices Nearest to Initial LTM
-        batch_size = weight.size(0)
         index_0 = torch.arange(batch_size, requires_grad=False, device=weight.device, dtype=torch.long).unsqueeze(1)
         nearest_stm_mask = torch.zeros_like(
             shortterm_memory_indices, requires_grad=False, device=weight.device, dtype=torch.bool

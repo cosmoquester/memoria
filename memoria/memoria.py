@@ -3,6 +3,38 @@ from typing import Optional, Tuple, Union
 import torch
 
 from .engram import Engrams, EngramType
+from .engrams_functional import engrams_select
+
+
+@torch.jit.script
+def memoria_remind_shortterm_memory(weight, shortterm_memory_indices, num_reminded_stm: int):
+    # [BatchSize, ShorttermMemoryLength]
+    stm_weight = weight.mean(dim=1)
+
+    _, reminded_indices = stm_weight.topk(min(num_reminded_stm, stm_weight.size(1)), dim=1)
+    reminded_mask = torch.zeros_like(shortterm_memory_indices, device=weight.device) > 0
+    index_0 = torch.arange(weight.size(0), device=weight.device, dtype=torch.long)
+    reminded_mask[index_0.unsqueeze(1), reminded_indices] = True
+    return shortterm_memory_indices.masked_fill(~reminded_mask, -1)
+
+
+@torch.jit.script
+def memoria_find_stm_nearest_to_ltm(num_initial_ltm: int, weight: torch.Tensor, shortterm_memory_indices: torch.Tensor):
+    batch_size, _, num_stms = weight.size()
+
+    # [BatchSize, WorkingMemoryLength, FiringShorttermMemories]
+    _, top_indices = weight.topk(k=min(num_initial_ltm, num_stms), dim=2)
+
+    # [BatchSize, WorkingMemoryLength * FiringShorttermMemories]
+    top_indices = top_indices.view(batch_size, -1)
+
+    # Get STM Indices Nearest to Initial LTM
+    index_0 = torch.arange(batch_size, device=weight.device, dtype=torch.long).unsqueeze(1)
+    nearest_stm_mask = torch.zeros_like(shortterm_memory_indices, device=weight.device, dtype=torch.bool)
+    nearest_stm_mask[index_0, top_indices] = True
+    nearest_stm_indices = shortterm_memory_indices.masked_fill(~nearest_stm_mask, -1)
+    nearest_stm_indices = torch.unique(nearest_stm_indices, dim=1)  # Not necessary
+    return nearest_stm_indices
 
 
 class Memoria:
@@ -135,16 +167,7 @@ class Memoria:
             indices selected shortterm memory indices shaped [BatchSize, SelectedMemoryLength]
             -1 means not reminded, non-negative intergers is reminded
         """
-        # [BatchSize, ShorttermMemoryLength]
-        stm_weight = weight.mean(dim=1)
-
-        _, reminded_indices = stm_weight.topk(min(self.num_reminded_stm, stm_weight.size(1)), dim=1)
-        reminded_mask = torch.zeros_like(
-            shortterm_memory_indices, dtype=bool, device=weight.device, requires_grad=False
-        )
-        index_0 = torch.arange(weight.size(0), device=weight.device, requires_grad=False, dtype=torch.long)
-        reminded_mask[index_0.unsqueeze(1), reminded_indices] = True
-        return shortterm_memory_indices.masked_fill(~reminded_mask, -1)
+        return memoria_remind_shortterm_memory(weight, shortterm_memory_indices, self.num_reminded_stm)
 
     @torch.no_grad()
     def _find_stm_nearest_to_ltm(self, weight: torch.Tensor, shortterm_memory_indices: torch.Tensor) -> torch.Tensor:
@@ -158,23 +181,7 @@ class Memoria:
             indices selected shortterm memory indices shaped [BatchSize, NumInitialLTMs]
                 -1 means unselected. other values mean selected
         """
-        batch_size, _, num_stms = weight.size()
-
-        # [BatchSize, WorkingMemoryLength, FiringShorttermMemories]
-        _, top_indices = weight.topk(k=min(self.num_initial_ltm, num_stms), dim=2)
-
-        # [BatchSize, WorkingMemoryLength * FiringShorttermMemories]
-        top_indices = top_indices.view(batch_size, -1)
-
-        # Get STM Indices Nearest to Initial LTM
-        index_0 = torch.arange(batch_size, requires_grad=False, device=weight.device, dtype=torch.long).unsqueeze(1)
-        nearest_stm_mask = torch.zeros_like(
-            shortterm_memory_indices, requires_grad=False, device=weight.device, dtype=torch.bool
-        )
-        nearest_stm_mask[index_0, top_indices] = True
-        nearest_stm_indices = shortterm_memory_indices.masked_fill(~nearest_stm_mask, -1)
-        nearest_stm_indices = torch.unique(nearest_stm_indices, dim=1)  # Not necessary
-        return nearest_stm_indices
+        return memoria_find_stm_nearest_to_ltm(self.num_initial_ltm, weight, shortterm_memory_indices)
 
     @torch.no_grad()
     def _find_initial_longterm_memory(self, nearest_shortterm_memory_indices: torch.Tensor) -> torch.Tensor:

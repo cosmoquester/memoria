@@ -202,21 +202,21 @@ def test_remind():
     working_memory = torch.randn(batch_size, memory_length, hidden_dim)
     memoria.add_working_memory(working_memory)
     outputs, indices = memoria.remind()
-    memoria.adjust_lifespan_and_memories(indices, torch.ones_like(indices, dtype=float))
+    memoria.adjust_lifespan_and_memories(indices, torch.ones_like(indices, dtype=torch.float32))
     assert len(memoria.engrams.get_shortterm_memory()[0]) == batch_size * memory_length
     assert outputs.size(1) == 0
 
     working_memory = torch.randn(batch_size, memory_length, hidden_dim)
     memoria.add_working_memory(working_memory)
     outputs, indices = memoria.remind()
-    memoria.adjust_lifespan_and_memories(indices, torch.ones_like(indices, dtype=float))
+    memoria.adjust_lifespan_and_memories(indices, torch.ones_like(indices, dtype=torch.float32))
     assert len(memoria.engrams.get_shortterm_memory()[0]) == batch_size * memory_length * 2
     assert outputs.size(1) > 0
 
     working_memory = torch.randn(batch_size, memory_length, hidden_dim)
     memoria.add_working_memory(working_memory)
     outputs, indices = memoria.remind()
-    memoria.adjust_lifespan_and_memories(indices, torch.ones_like(indices, dtype=float))
+    memoria.adjust_lifespan_and_memories(indices, torch.ones_like(indices, dtype=torch.float32))
     assert len(memoria.engrams.get_shortterm_memory()[0]) == batch_size * memory_length * 2
     assert outputs.size(1) > 0
 

@@ -87,8 +87,10 @@ class Memoria:
         elif not self.enable_stm:
             reminded_indices = reminded_ltm_indices
 
+        reminded_indices = reminded_indices.unique(dim=1)
+
         # [BatchSize, RemindedMemoryLength, HiddenDim]
-        reminded_memories = self.engrams.select(reminded_indices).data
+        reminded_memories = self.engrams.select(reminded_indices).data.contiguous()
 
         return reminded_memories, reminded_indices
 

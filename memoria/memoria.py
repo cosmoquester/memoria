@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Optional, Tuple, Union
 
 import torch
 
@@ -18,6 +18,7 @@ class Memoria:
         initial_lifespan: int,
         enable_stm: bool = True,
         enable_ltm: bool = True,
+        device: Optional[Union[str, torch.device]] = None,
     ) -> None:
         """
 
@@ -32,6 +33,7 @@ class Memoria:
                 this module will not return shortterm memory indices, but keep shortterm memory
                 to remind longterm memory. so when `enable ltm` is True.
             enable_ltm: whether to use longterm memory. this module will keep shortterm and longterm memories.
+            device: memoria device to save engrams
         """
         self.engrams = Engrams.empty()
 
@@ -43,6 +45,8 @@ class Memoria:
         self.initial_lifespan: int = initial_lifespan
         self.enable_stm: bool = enable_stm
         self.enable_ltm: bool = enable_ltm
+        self.device = torch.device(device) if device else None
+        self.ext_device = None
 
     @torch.no_grad()
     def add_working_memory(self, data: torch.Tensor) -> None:
@@ -51,7 +55,9 @@ class Memoria:
         Args:
             data: input data which is working memory shaped [BatchSize, WorkingMemoryLength, HiddenDim]
         """
-        self.engrams += Engrams(data, engrams_types=EngramType.WORKING, lifespan=self.initial_lifespan)
+        self.ext_device = data.device
+        self.device = self.device or data.device
+        self.engrams += Engrams(data.to(self.device), engrams_types=EngramType.WORKING, lifespan=self.initial_lifespan)
 
     @torch.no_grad()
     def remind(self) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -90,13 +96,14 @@ class Memoria:
         reminded_indices = reminded_indices.unique(dim=1)
 
         # [BatchSize, RemindedMemoryLength, HiddenDim]
-        reminded_memories = self.engrams.select(reminded_indices).data.contiguous()
+        reminded_memories = self.engrams.select(reminded_indices).data.to(self.ext_device).contiguous()
 
         return reminded_memories, reminded_indices
 
     @torch.no_grad()
     def adjust_lifespan_and_memories(self, indices: torch.Tensor, lifespan_delta: torch.Tensor):
         """Adjust lifespan and memories"""
+        lifespan_delta = lifespan_delta.to(self.device)
         self.engrams.extend_lifespan(indices, lifespan_delta)
         self.engrams.decrease_lifespan()
 

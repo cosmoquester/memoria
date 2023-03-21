@@ -44,3 +44,21 @@ def test_get_item():
     assert selected.indices.tolist() == [[1]]
     assert selected.values.tolist() == [3]
     assert selected.tolist() == [0, 3]
+
+    selected = sparse_tensor[torch.tensor([[[0, 2]]])]
+    assert selected.shape == (1, 1, 2, 3)
+    assert selected.indices.tolist() == [[0, 0, 0, 0], [0, 0, 1, 2]]
+    assert selected.values.tolist() == [1, 3]
+    assert selected.tolist() == [[[[1, 0, 0], [0, 0, 3]]]]
+
+    selected = sparse_tensor[torch.tensor([[0, 1], [2, 0]]), torch.tensor([[1, 2], [2, 0]])]
+    assert selected.shape == (2, 2)
+    assert selected.indices.tolist() == [[1, 0], [1, 1]]
+    assert selected.values.tolist() == [3, 1]
+    assert selected.tolist() == [[0, 0], [3, 1]]
+
+    selected = sparse_tensor[0:2]
+    assert selected.shape == (2, 3)
+    assert selected.indices.tolist() == [[0, 0], [1, 1]]
+    assert selected.values.tolist() == [1, 2]
+    assert selected.tolist() == [[1, 0, 0], [0, 2, 0]]

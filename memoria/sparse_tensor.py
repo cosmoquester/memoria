@@ -137,6 +137,41 @@ class SparseTensor:
 
         return SparseTensor(new_indices, new_values, self.default_value, new_shape)
 
+    def __add__(self, other: Union[int, "SparseTensor"]) -> "SparseTensor":
+        if isinstance(other, int):
+            return SparseTensor(self.indices, self.values + other, self.default_value + other, self.shape)
+        elif isinstance(other, SparseTensor):
+            if self.default_value != other.default_value:
+                raise ValueError("default_value must be the same")
+            if self.shape != other.shape:
+                raise ValueError("shape must be the same")
+
+            added = self.clone()
+            duplicated_mask = (self.indices.unsqueeze(-1) == other.indices.T).all(dim=1)
+            added.values[duplicated_mask.any(dim=1).nonzero().squeeze(-1)] += other.values[
+                duplicated_mask.any(dim=0).nonzero().squeeze(-1)
+            ]
+            exclusive_mask = duplicated_mask.any(dim=0).logical_not().nonzero().squeeze(-1)
+            added.indices = torch.cat([added.indices, other.indices[exclusive_mask]], dim=0)
+            added.values = torch.cat([added.values, other.values[exclusive_mask]], dim=0)
+            return added
+        else:
+            raise ValueError("other must be int or SparseTensor")
+
+    def unsqueeze(self, dim: int = -1) -> "SparseTensor":
+        if dim < 0:
+            dim += self.dim()
+
+        indices = torch.cat(
+            [
+                self.indices[:, :dim],
+                torch.zeros([self.indices.size(0), 1], dtype=torch.int32, device=self.device),
+                self.indices[:, dim:],
+            ],
+            dim=1,
+        )
+        return SparseTensor(indices, self.values, self.default_value, self.shape[:dim] + (1,) + self.shape[dim:])
+
     @classmethod
     def empty(
         cls,
@@ -177,6 +212,9 @@ class SparseTensor:
 
     def tolist(self) -> list:
         return self.to_dense().tolist()
+
+    def clone(self) -> "SparseTensor":
+        return SparseTensor(self.indices.clone(), self.values.clone(), self.default_value, self.shape)
 
     def __eq__(self, other: Union["SparseTensor", torch.Tensor]) -> bool:
         if isinstance(other, torch.Tensor):

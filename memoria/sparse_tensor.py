@@ -11,9 +11,10 @@ class SparseTensor:
         values: torch.Tensor,
         default_value: Union[int, float] = 0,
         shape: Optional[Tuple[int]] = None,
+        device: Optional[torch.device] = None,
     ) -> None:
         self.shape = tuple((indices.max(dim=0).values + 1).tolist()) if shape is None else tuple(shape)
-        self.device = values.device
+        self.device = device if device is not None else values.device
 
         self.indices = indices.to(self.device)
         self.values = values

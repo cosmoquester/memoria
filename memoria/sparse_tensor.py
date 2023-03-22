@@ -23,29 +23,7 @@ class SparseTensor:
         return len(self.shape)
 
     def __getitem__(self, raw_keys: Union[int, slice, torch.Tensor, Tuple, List]) -> "SparseTensor":
-        if not isinstance(raw_keys, tuple):
-            raw_keys = (raw_keys,)
-        raw_keys = raw_keys + (None,) * (self.dim() - len(raw_keys))
-
-        keys = list(raw_keys)
-        for dim, dim_raw_indices in enumerate(raw_keys):
-            if isinstance(dim_raw_indices, int) or dim_raw_indices is None:
-                pass
-            elif isinstance(dim_raw_indices, slice):
-                if dim_raw_indices.start is None and dim_raw_indices.stop is None and dim_raw_indices.step is None:
-                    keys[dim] = None
-                else:
-                    start = dim_raw_indices.start or 0
-                    stop = min(dim_raw_indices.stop or self.shape[dim], self.shape[dim])
-                    step = dim_raw_indices.step or 1
-                    keys[dim] = slice(start, stop, step)
-            elif isinstance(dim_raw_indices, torch.Tensor):
-                keys[dim] = dim_raw_indices
-            elif isinstance(dim_raw_indices, list):
-                keys[dim] = torch.tensor(dim_raw_indices, dtype=torch.int32, device=self.device)
-            else:
-                raise ValueError(f"Unsupported index type {type(keys)}")
-
+        keys = self.__get_keys_with_raw_keys(raw_keys)
         current_data_indices = self.indices.clone()
         current_data_values = self.values.clone()
         current_shape = self.shape
@@ -227,6 +205,33 @@ class SparseTensor:
                 and torch.equal(self.values, other.values)
             )
         return False
+
+    def __get_keys_with_raw_keys(
+        self, raw_keys: Union[int, slice, torch.Tensor, Tuple, List]
+    ) -> List[Union[int, slice, torch.Tensor]]:
+        if not isinstance(raw_keys, tuple):
+            raw_keys = (raw_keys,)
+        raw_keys = raw_keys + (None,) * (self.dim() - len(raw_keys))
+
+        keys = list(raw_keys)
+        for dim, dim_raw_indices in enumerate(raw_keys):
+            if isinstance(dim_raw_indices, int) or dim_raw_indices is None:
+                pass
+            elif isinstance(dim_raw_indices, slice):
+                if dim_raw_indices.start is None and dim_raw_indices.stop is None and dim_raw_indices.step is None:
+                    keys[dim] = None
+                else:
+                    start = dim_raw_indices.start or 0
+                    stop = min(dim_raw_indices.stop or self.shape[dim], self.shape[dim])
+                    step = dim_raw_indices.step or 1
+                    keys[dim] = slice(start, stop, step)
+            elif isinstance(dim_raw_indices, torch.Tensor):
+                keys[dim] = dim_raw_indices
+            elif isinstance(dim_raw_indices, list):
+                keys[dim] = torch.tensor(dim_raw_indices, dtype=torch.int32, device=self.device)
+            else:
+                raise ValueError(f"Unsupported index type {type(keys)}")
+        return keys
 
     def __repr__(self) -> str:
         return f"SparseTensor(shape={self.shape}, default_value={self.default_value}, indices={self.indices}, values={self.values})"

@@ -134,6 +134,12 @@ class Engrams:
     def fire_count(self) -> torch.Tensor:
         return self.induce_counts.diagonal(dim1=1, dim2=2).to_dense()
 
+    @fire_count.setter
+    @torch.no_grad()
+    def fire_count(self, value: torch.Tensor) -> None:
+        index = torch.arange(value.size(1), device=value.device, dtype=torch.long, requires_grad=False)
+        self.induce_counts[:, index, index] = value
+
     @torch.no_grad()
     def get_indices_with_mask(self, mask: torch.Tensor) -> torch.Tensor:
         """Get global indices with boolean mask

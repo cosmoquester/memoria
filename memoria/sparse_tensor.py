@@ -78,20 +78,27 @@ class SparseTensor:
         keys = [v.view([*[1] * (new_key_rank - v.dim()), *v.shape]) if v is not None else None for v in keys]
         dim_key_shapes = ([key.shape[i] for key in keys if key is not None] for i in range(new_key_rank))
         new_key_shape = tuple(max(s) if 0 not in s else 0 for s in dim_key_shapes)
-        new_indices = []
-        new_values = []
-
-        if 0 in new_key_shape:
-            return SparseTensor(
-                torch.empty([0, new_key_rank], dtype=torch.long, device=self.device),
-                torch.empty([0], dtype=self.values.dtype, device=self.device),
-                self.default_value,
-                new_key_shape,
-            )
-
         dim_keys = [(dim, key) for dim, key in enumerate(keys) if key is not None]
         live_dims = [dim for dim, _ in dim_keys]
         new_indices_dim = live_dims[0]
+        new_indices = []
+        new_values = []
+        new_shape = []
+        for dim, key in enumerate(keys):
+            if dim == new_indices_dim:
+                new_shape.extend(new_key_shape)
+            elif key is None:
+                new_shape.append(current_shape[dim])
+
+        if 0 in new_key_shape:
+            return SparseTensor(
+                torch.empty([0, len(new_shape)], dtype=torch.long, device=self.device),
+                torch.empty([0], dtype=self.values.dtype, device=self.device),
+                self.default_value,
+                new_shape,
+            )
+
+        # TODO: Improve speed, too slow now
         for key_idx in product(*[range(s) for s in new_key_shape if s is not None]):
             selected_mask = torch.ones([current_data_indices.size(0)], dtype=torch.bool, device=self.device)
             for dim, key in dim_keys:
@@ -120,12 +127,6 @@ class SparseTensor:
 
         new_indices = torch.cat(new_indices, dim=0)
         new_values = torch.cat(new_values, dim=0)
-        new_shape = []
-        for dim, key in enumerate(keys):
-            if dim == new_indices_dim:
-                new_shape.extend(new_key_shape)
-            elif key is None:
-                new_shape.append(current_shape[dim])
 
         return SparseTensor(new_indices, new_values, self.default_value, new_shape)
 

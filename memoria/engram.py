@@ -201,7 +201,7 @@ class Engrams:
         """
         mask = self.working_memory_mask
         indices = self.get_indices_with_mask(mask)
-        memory = self.mask_select(mask=mask)
+        memory = self.select(indices=indices)
         return memory, indices
 
     @torch.no_grad()
@@ -215,7 +215,7 @@ class Engrams:
         """
         mask = self.shortterm_memory_mask
         indices = self.get_indices_with_mask(mask)
-        memory = self.mask_select(mask=mask)
+        memory = self.select(indices=indices)
         return memory, indices
 
     @torch.no_grad()
@@ -229,7 +229,7 @@ class Engrams:
         """
         mask = self.longterm_memory_mask
         indices = self.get_indices_with_mask(mask)
-        memory = self.mask_select(mask=mask)
+        memory = self.select(indices=indices)
         return memory, indices
 
     @torch.no_grad()

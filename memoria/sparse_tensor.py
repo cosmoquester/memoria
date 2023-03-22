@@ -81,7 +81,8 @@ class SparseTensor:
         new_values = []
 
         dim_keys = [(dim, key) for dim, key in enumerate(keys) if key is not None]
-        new_indices_dim = dim_keys[0][0]
+        live_dims = [dim for dim, _ in dim_keys]
+        new_indices_dim = live_dims[0]
         for key_idx in product(*[range(s) for s in new_key_shape if s is not None]):
             selected_mask = torch.ones([current_data_indices.size(0)], dtype=torch.bool, device=self.device)
             for dim, key in dim_keys:
@@ -92,7 +93,6 @@ class SparseTensor:
             selected_indices = current_data_indices.masked_select(selected_mask.unsqueeze(1)).view(
                 -1, current_data_indices.size(1)
             )
-            dim_to_idx = {dim: idx for idx, (dim, _) in zip(key_idx, dim_keys)}
             selected_indices = torch.cat(
                 [
                     selected_indices[:, :new_indices_dim],
@@ -101,7 +101,7 @@ class SparseTensor:
                 + [
                     selected_indices[:, i : i + 1]
                     for i in range(new_indices_dim + 1, selected_indices.size(1))
-                    if i not in dim_to_idx
+                    if i not in live_dims
                 ],
                 dim=1,
             )
@@ -120,7 +120,9 @@ class SparseTensor:
 
         return SparseTensor(new_indices, new_values, self.default_value, new_shape)
 
-    def __setitem__(self, raw_keys: Union[int, slice, torch.Tensor, Tuple, List], value: Union[int, float]):
+    def __setitem__(
+        self, raw_keys: Union[int, slice, torch.Tensor, Tuple, List], value: Union[int, float, torch.Tensor]
+    ):
         keys = self.__get_keys_with_raw_keys(raw_keys)
         selected_mask = torch.ones([self.indices.size(0)], dtype=torch.bool, device=self.device)
         tensor_key_shape = []
@@ -162,25 +164,40 @@ class SparseTensor:
         )
         self.values = self.values.masked_select(selected_mask.logical_not())
 
-        if self.default_value == value:
+        if isinstance(value, int) and self.default_value == value:
             return
 
         # Add new values
         new_indices = []
         non_tensor_keys = [key for key in keys if not isinstance(key, torch.Tensor)]
-        for *new_index, tensor_key in product(*non_tensor_keys, zip(*tensor_keys) if tensor_keys else [()]):
-            for dim, key in zip(tensor_key_dims, tensor_key):
-                new_index.insert(dim, key)
+        non_and_first_tensor_keys = non_tensor_keys.copy()
+        if tensor_keys:
+            non_and_first_tensor_keys.insert(tensor_key_dims[0], zip(*tensor_keys) if tensor_keys else (()))
+        for new_index in product(*non_and_first_tensor_keys):
+            new_index = list(new_index)
+            if tensor_keys:
+                for dim, key in zip(tensor_key_dims, new_index.pop(tensor_key_dims[0])):
+                    new_index.insert(dim, key)
             new_indices.append(new_index)
-        new_indices = torch.tensor(sorted(new_indices), device=self.device, dtype=torch.int32)
-        new_values = torch.tensor([value] * new_indices.size(0), device=self.device, dtype=self.values.dtype)
+        new_indices = torch.tensor(new_indices, device=self.device, dtype=torch.int32)
+
+        if isinstance(value, int):
+            new_values = torch.tensor([value] * new_indices.size(0), device=self.device, dtype=self.values.dtype)
+        elif isinstance(value, torch.Tensor):
+            tensor_key_start_dim = tensor_key_dims[0]
+            value_shape = (
+                [len(keys[dim]) for dim in range(tensor_key_start_dim)]
+                + [tensor_key_shape]
+                + [len(keys[dim]) for dim in range(tensor_key_start_dim + 1, len(keys)) if dim not in tensor_key_dims]
+            )
+            new_values = value.expand(*value_shape).flatten()
 
         self.indices = torch.cat([self.indices, new_indices], dim=0)
         self.values = torch.cat([self.values, new_values], dim=0)
 
     def __add__(self, other: Union[int, "SparseTensor"]) -> "SparseTensor":
         if isinstance(other, int):
-            return SparseTensor(self.indices, self.values + other, self.default_value + other, self.shape)
+            return SparseTensor.from_tensor(self.to_dense() + other)
         elif isinstance(other, SparseTensor):
             if self.default_value != other.default_value:
                 raise ValueError("default_value must be the same")

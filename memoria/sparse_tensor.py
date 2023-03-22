@@ -183,11 +183,11 @@ class SparseTensor:
             new_indices.append(new_index)
         new_indices = torch.tensor(new_indices, device=self.device, dtype=torch.int32)
 
-        if isinstance(value, int):
-            new_values = torch.tensor([value] * new_indices.size(0), device=self.device, dtype=self.values.dtype)
         if isinstance(value, SparseTensor):
             value = value.to_dense()
-        if isinstance(value, torch.Tensor):
+        if isinstance(value, int) or value.numel() == 1:
+            new_values = torch.tensor([value] * new_indices.size(0), device=self.device, dtype=self.values.dtype)
+        elif isinstance(value, torch.Tensor):
             tensor_key_start_dim = tensor_key_dims[0]
             value_shape = (
                 [len(keys[dim]) for dim in range(tensor_key_start_dim)]

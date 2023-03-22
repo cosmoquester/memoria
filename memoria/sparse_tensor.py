@@ -76,9 +76,18 @@ class SparseTensor:
 
         new_key_rank = max(key.dim() for key in keys if key is not None)
         keys = [v.view([*[1] * (new_key_rank - v.dim()), *v.shape]) if v is not None else None for v in keys]
-        new_key_shape = tuple(max(key.shape[i] for key in keys if key is not None) for i in range(new_key_rank))
+        dim_key_shapes = ([key.shape[i] for key in keys if key is not None] for i in range(new_key_rank))
+        new_key_shape = tuple(max(s) if 0 not in s else 0 for s in dim_key_shapes)
         new_indices = []
         new_values = []
+
+        if 0 in new_key_shape:
+            return SparseTensor(
+                torch.empty([0, new_key_rank], dtype=torch.long, device=self.device),
+                torch.empty([0], dtype=self.values.dtype, device=self.device),
+                self.default_value,
+                new_key_shape,
+            )
 
         dim_keys = [(dim, key) for dim, key in enumerate(keys) if key is not None]
         live_dims = [dim for dim, _ in dim_keys]

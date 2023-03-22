@@ -87,3 +87,12 @@ def test_diagonal():
     sparse_tensor = SparseTensor.from_tensor(tensor)
 
     assert (tensor.diagonal(dim1=1, dim2=3) == sparse_tensor.diagonal(dim1=1, dim2=3).to_dense()).all()
+
+
+def test_equals():
+    tensor = torch.randn(2, 5, 3, 5)
+    sparse_tensor = SparseTensor.from_tensor(tensor)
+
+    assert tensor == sparse_tensor
+    assert (tensor == sparse_tensor.to_dense()).all()
+    assert sparse_tensor != SparseTensor.from_tensor(torch.randn(2, 5, 3, 5))

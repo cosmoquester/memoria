@@ -115,6 +115,64 @@ class SparseTensor:
 
         return SparseTensor(new_indices, new_values, self.default_value, new_shape)
 
+    def __setitem__(self, raw_keys: Union[int, slice, torch.Tensor, Tuple, List], value: Union[int, float]):
+        keys = self.__get_keys_with_raw_keys(raw_keys)
+        selected_mask = torch.ones([self.indices.size(0)], dtype=torch.bool, device=self.device)
+        tensor_key_shape = []
+        for dim, key in list(enumerate(keys)):
+            if isinstance(key, int):
+                keys[dim] = [key]
+            elif isinstance(key, slice):
+                keys[dim] = range(key.start, key.stop, key.step)
+            elif isinstance(key, torch.Tensor):
+                if key.dim() < len(tensor_key_shape):
+                    key = key.view(*([1] * (len(tensor_key_shape) - key.dim())), *key.shape)
+                elif key.dim() > len(tensor_key_shape):
+                    tensor_key_shape = [1] * (key.dim() - len(tensor_key_shape)) + tensor_key_shape
+                tensor_key_shape = [max(s, ks) for s, ks in zip(key.shape, tensor_key_shape)]
+                continue
+            elif key is None:
+                keys[dim] = range(self.shape[dim])
+                continue
+            else:
+                raise ValueError("key must be int, slice, torch.Tensor, or None")
+            key = torch.tensor([keys[dim]], device=self.device, dtype=torch.int32)
+            selected_mask &= (self.indices[:, dim : dim + 1] == key).any(dim=1)
+
+        # Process Tensor Key
+        for dim, key in list(enumerate(keys)):
+            if isinstance(key, torch.Tensor):
+                keys[dim] = key.expand(*tensor_key_shape).flatten()
+
+        tensor_keys = [key for key in keys if isinstance(key, torch.Tensor)]
+        tensor_key_dims = [dim for dim, key in enumerate(keys) if isinstance(key, torch.Tensor)]
+        if tensor_keys:
+            tensor_key_indices = self.indices[:, tensor_key_dims]
+            key_indices = torch.tensor(list(zip(*tensor_keys)), device=self.device, dtype=torch.int32)
+            selected_mask &= (tensor_key_indices.unsqueeze(2) == key_indices.T.unsqueeze(0)).all(dim=1).any(dim=1)
+
+        # Deleted Selected Values
+        self.indices = self.indices.masked_select(selected_mask.logical_not().unsqueeze(1)).view(
+            -1, self.indices.size(1)
+        )
+        self.values = self.values.masked_select(selected_mask.logical_not())
+
+        if self.default_value == value:
+            return
+
+        # Add new values
+        new_indices = []
+        non_tensor_keys = [key for key in keys if not isinstance(key, torch.Tensor)]
+        for *new_index, tensor_key in product(*non_tensor_keys, zip(*tensor_keys) if tensor_keys else [()]):
+            for dim, key in zip(tensor_key_dims, tensor_key):
+                new_index.insert(dim, key)
+            new_indices.append(new_index)
+        new_indices = torch.tensor(sorted(new_indices), device=self.device, dtype=torch.int32)
+        new_values = torch.tensor([value] * new_indices.size(0), device=self.device, dtype=self.values.dtype)
+
+        self.indices = torch.cat([self.indices, new_indices], dim=0)
+        self.values = torch.cat([self.values, new_values], dim=0)
+
     def __add__(self, other: Union[int, "SparseTensor"]) -> "SparseTensor":
         if isinstance(other, int):
             return SparseTensor(self.indices, self.values + other, self.default_value + other, self.shape)

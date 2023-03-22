@@ -259,6 +259,9 @@ class SparseTensor:
     def clone(self) -> "SparseTensor":
         return SparseTensor(self.indices.clone(), self.values.clone(), self.default_value, self.shape)
 
+    def type(self, dtype: torch.dtype) -> "SparseTensor":
+        return SparseTensor(self.indices, self.values.type(dtype), self.default_value, self.shape)
+
     def __eq__(self, other: Union["SparseTensor", torch.Tensor]) -> bool:
         if isinstance(other, torch.Tensor):
             other = SparseTensor.from_tensor(other, self.default_value)

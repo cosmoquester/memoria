@@ -178,5 +178,17 @@ class SparseTensor:
     def tolist(self) -> list:
         return self.to_dense().tolist()
 
+    def __eq__(self, other: Union["SparseTensor", torch.Tensor]) -> bool:
+        if isinstance(other, torch.Tensor):
+            other = SparseTensor.from_tensor(other, self.default_value)
+        if isinstance(other, SparseTensor):
+            return (
+                self.shape == other.shape
+                and self.default_value == other.default_value
+                and torch.equal(self.indices, other.indices)
+                and torch.equal(self.values, other.values)
+            )
+        return False
+
     def __repr__(self) -> str:
         return f"SparseTensor(shape={self.shape}, default_value={self.default_value}, indices={self.indices}, values={self.values})"

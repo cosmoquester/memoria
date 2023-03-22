@@ -161,6 +161,20 @@ class SparseTensor:
         tensor[self.indices.tensor_split(self.indices.size(1), dim=1)] = self.values.unsqueeze(1)
         return tensor
 
+    def diagonal(self, dim1: int = 0, dim2: int = 1) -> torch.Tensor:
+        if dim1 < 0:
+            dim1 += self.dim()
+        if dim2 < 0:
+            dim2 += self.dim()
+        dim1, dim2 = min(dim1, dim2), max(dim1, dim2)
+
+        mask = self.indices[:, dim1] == self.indices[:, dim2]
+        indices = self.indices.masked_select(mask.unsqueeze(1)).view(-1, self.indices.size(1))
+        values = self.values.masked_select(mask)
+        indices = indices[:, [dim for dim in range(indices.size(1)) if dim != dim1]]
+        shape = self.shape[:dim1] + self.shape[dim1 + 1 :]
+        return SparseTensor(indices, values, self.default_value, shape)
+
     def tolist(self) -> list:
         return self.to_dense().tolist()
 

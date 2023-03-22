@@ -21,6 +21,10 @@ def test_get_item():
     assert isinstance(selected, torch.Tensor)
     assert selected.item() == 1
 
+    selected = sparse_tensor[0, 2]
+    assert isinstance(selected, torch.Tensor)
+    assert selected.item() == 0
+
     selected = sparse_tensor[1]
     assert selected.shape == (3,)
     assert selected.indices.tolist() == [[1]]
@@ -121,9 +125,15 @@ def test_set_item():
 
     sparse_tensor = SparseTensor.from_tensor(tensor)
     sparse_tensor[torch.tensor([[0, 1], [2, 0]]), torch.tensor([[1, 2], [2, 0]])] = 70
-    assert sparse_tensor.indices.tolist() == [[1, 1], [0, 0], [0, 1], [1, 2], [2, 2]]
+    assert sparse_tensor.indices.tolist() == [[1, 1], [0, 1], [1, 2], [2, 2], [0, 0]]
     assert sparse_tensor.values.tolist() == [2, 70, 70, 70, 70]
     assert sparse_tensor.to_dense().tolist() == [[70, 70, 0], [0, 2, 70], [0, 0, 70]]
+
+    sparse_tensor = SparseTensor.from_tensor(tensor)
+    sparse_tensor[torch.tensor([[0, 1], [2, 0]]), torch.tensor([[1, 2], [2, 0]])] = torch.tensor([[70, 80], [90, 100]])
+    assert sparse_tensor.indices.tolist() == [[1, 1], [0, 1], [1, 2], [2, 2], [0, 0]]
+    assert sparse_tensor.values.tolist() == [2, 70, 80, 90, 100]
+    assert sparse_tensor.to_dense().tolist() == [[100, 70, 0], [0, 2, 80], [0, 0, 90]]
 
     sparse_tensor = SparseTensor.from_tensor(tensor)
     sparse_tensor[0:2] = 80

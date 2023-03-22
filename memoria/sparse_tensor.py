@@ -64,7 +64,11 @@ class SparseTensor:
 
         # Process Complex Index
         if current_shape == ():
-            return current_data_values
+            return (
+                current_data_values
+                if current_data_values.numel()
+                else torch.tensor(self.default_value, device=self.device, dtype=self.values.dtype)
+            )
 
         if all(x is None for x in keys):
             return SparseTensor(current_data_indices, current_data_values, self.default_value, current_shape)

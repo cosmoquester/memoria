@@ -3,6 +3,8 @@ from typing import Optional, Tuple, Union
 
 import torch
 
+from .sparse_tensor import SparseTensor
+
 
 class EngramType(Enum):
     NULL = 0
@@ -27,21 +29,20 @@ class Engrams:
     def __init__(
         self,
         data: torch.Tensor,
-        induce_counts: Optional[torch.Tensor] = None,
+        induce_counts: Optional[SparseTensor] = None,
         engrams_types: Optional[Union[torch.Tensor, EngramType]] = None,
         lifespan: Union[torch.Tensor, int] = 0,
     ) -> None:
         self.batch_size, self.memory_length, self.hidden_dim = data.shape
         self.data: torch.Tensor = data.detach().float()
-        self.induce_counts: torch.Tensor = (
-            torch.zeros(
+        self.induce_counts: SparseTensor = (
+            SparseTensor.empty(
                 [self.batch_size, self.memory_length, self.memory_length],
                 dtype=torch.int32,
-                requires_grad=False,
                 device=data.device,
             )
             if induce_counts is None
-            else induce_counts.detach().type(torch.int32)
+            else induce_counts.type(torch.int32)
         )
         default_engram_type = engrams_types if isinstance(engrams_types, EngramType) else EngramType.WORKING
         self.engrams_types = (
@@ -78,7 +79,7 @@ class Engrams:
     def __eq__(self, other: "Engrams") -> bool:
         return (
             (self.data == other.data).all()
-            and (self.induce_counts == other.induce_counts).all()
+            and self.induce_counts == other.induce_counts
             and (self.engrams_types == other.engrams_types).all()
             and (self.lifespan == other.lifespan).all()
         )
@@ -95,14 +96,16 @@ class Engrams:
         concatenated_lifespan = torch.cat([self.lifespan, other.lifespan], dim=1)
 
         new_memory_length = self.memory_length + other.memory_length
-        concatenated_induce_counts = torch.zeros(
-            [self.batch_size, new_memory_length, new_memory_length],
-            dtype=torch.int32,
-            requires_grad=False,
+        new_induce_counts_indices = torch.cat(
+            [self.induce_counts.indices, other.induce_counts.indices + self.memory_length], dim=0
+        )
+        new_induce_counts_values = torch.cat([self.induce_counts.values, other.induce_counts.values], dim=0)
+        concatenated_induce_counts = SparseTensor(
+            indices=new_induce_counts_indices,
+            values=new_induce_counts_values,
+            shape=[self.batch_size, new_memory_length, new_memory_length],
             device=self.data.device,
         )
-        concatenated_induce_counts[:, : self.memory_length, : self.memory_length] = self.induce_counts
-        concatenated_induce_counts[:, self.memory_length :, self.memory_length :] = other.induce_counts
 
         return Engrams(
             concatenated_data,
@@ -129,13 +132,7 @@ class Engrams:
     @property
     @torch.no_grad()
     def fire_count(self) -> torch.Tensor:
-        return self.induce_counts.diagonal(dim1=1, dim2=2)
-
-    @fire_count.setter
-    @torch.no_grad()
-    def fire_count(self, value: torch.Tensor) -> None:
-        index = torch.arange(value.size(1), device=value.device, dtype=torch.long, requires_grad=False)
-        self.induce_counts[:, index, index] = value
+        return self.induce_counts.diagonal(dim1=1, dim2=2).to_dense()
 
     @torch.no_grad()
     def get_indices_with_mask(self, mask: torch.Tensor) -> torch.Tensor:
@@ -265,8 +262,20 @@ class Engrams:
             indices: global indices of firing engrams shaped [BatchSize, NumIndices]
                 -1 means ignore, multiple same indices considered once.
         """
-        mask = self.get_mask_with_indices(indices)
-        self.induce_counts += (mask.float().unsqueeze(2) @ mask.float().unsqueeze(1)).int()
+        num_indices = indices.size(1)
+        # [BatchSize, NumIndices^2, 2]
+        sparse_indices = torch.stack(
+            [indices.repeat(1, num_indices), indices.repeat_interleave(num_indices, dim=1)], dim=-1
+        )
+        batch_index = (
+            torch.arange(self.batch_size, device=indices.device, dtype=torch.int32, requires_grad=False)
+            .unsqueeze(1)
+            .unsqueeze(2)
+            .expand(*sparse_indices.shape[:2], 1)
+        )
+        sparse_indices = torch.cat([batch_index, sparse_indices], dim=2).view(-1, 3)
+        sparse_indices = sparse_indices.masked_select((sparse_indices >= 0).all(dim=1, keepdim=True)).view(-1, 3)
+        self.induce_counts[sparse_indices.unbind(dim=1)] += 1
 
     @torch.no_grad()
     def mask_select(self, mask: torch.Tensor) -> "Engrams":
@@ -306,9 +315,7 @@ class Engrams:
             selected_lifespan = self.lifespan[index_0.unsqueeze(1), indices]
 
             null_indices_mask = indices < 0
-            reverse_mask = (~null_indices_mask).float()
             selected_data.masked_fill_(null_indices_mask.unsqueeze(2), 0.0)
-            selected_induce_counts.masked_fill_(~(reverse_mask.unsqueeze(2) @ reverse_mask.unsqueeze(1)).bool(), -1)
             selected_engrams_types.masked_fill_(null_indices_mask, EngramType.NULL.value)
             selected_lifespan.masked_fill_(null_indices_mask, -1.0)
         return Engrams(selected_data, selected_induce_counts, selected_engrams_types, selected_lifespan)

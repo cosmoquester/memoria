@@ -136,19 +136,6 @@ class SparseTensor:
                 new_shape.append(current_shape[dim])
 
         return SparseTensor(new_indices, new_values, self.default_value, new_shape)
-        keys = [v.view([*[1] * (max_indices_rank - v.dim()), *v.shape]) for v in keys]
-
-        num_values = self.values.size(0)
-        selected_mask = torch.ones([num_values], dtype=torch.bool, device=self.device)
-        for dim, keys in enumerate(keys):
-            selected_mask &= self.indices[:, dim].view([num_values, *[1] * (max_indices_rank - 1)]) == keys
-
-        selected_indices = self.indices.masked_select(selected_mask.unsqueeze(1)).view(-1, self.dim())
-        converted_indices = torch.stack(
-            [selected_indices[:, i].unique(return_inverse=True)[1] for i in range(self.dim())], dim=1
-        )
-        selected_values = self.values.masked_select(selected_mask)
-        return SparseTensor(converted_indices, selected_values, self.default_value)
 
     @classmethod
     def empty(
@@ -178,5 +165,4 @@ class SparseTensor:
         return self.to_dense().tolist()
 
     def __repr__(self) -> str:
-        return f"SparseTensor(shape={self.shape}, default_value={self.default_value}, indices={self.indices}, values={self.values})"
         return f"SparseTensor(shape={self.shape}, default_value={self.default_value}, indices={self.indices}, values={self.values})"

@@ -80,3 +80,10 @@ def test_get_item():
     assert selected.indices.tolist() == [[1, 1]]
     assert selected.values.tolist() == [3]
     assert selected.tolist() == [[0, 0], [0, 3]]
+
+
+def test_diagonal():
+    tensor = torch.randn(2, 5, 3, 5)
+    sparse_tensor = SparseTensor.from_tensor(tensor)
+
+    assert (tensor.diagonal(dim1=1, dim2=3) == sparse_tensor.diagonal(dim1=1, dim2=3).to_dense()).all()

@@ -112,7 +112,7 @@ class SparseTensor:
             selected_indices = torch.cat(
                 [
                     selected_indices[:, :new_indices_dim],
-                    torch.tensor([key_idx]).expand([selected_indices.size(0), len(key_idx)]),
+                    torch.tensor([key_idx], device=self.device).expand([selected_indices.size(0), len(key_idx)]),
                 ]
                 + [
                     selected_indices[:, i : i + 1]

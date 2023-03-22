@@ -90,6 +90,17 @@ def test_set_item():
     tensor = torch.tensor([[1, 0, 0], [0, 2, 0], [0, 0, 3]], dtype=torch.int32)
     sparse_tensor = SparseTensor.from_tensor(tensor)
 
+    sparse_tensor[0, 0] = torch.tensor(90)
+    assert sparse_tensor.indices.tolist() == [[1, 1], [2, 2], [0, 0]]
+    assert sparse_tensor.values.tolist() == [2, 3, 90]
+    assert sparse_tensor.to_dense().tolist() == [[90, 0, 0], [0, 2, 0], [0, 0, 3]]
+
+    sparse_tensor[0, 0] += 10
+    assert sparse_tensor.indices.tolist() == [[1, 1], [2, 2], [0, 0]]
+    assert sparse_tensor.values.tolist() == [2, 3, 100]
+    assert sparse_tensor.to_dense().tolist() == [[100, 0, 0], [0, 2, 0], [0, 0, 3]]
+
+    sparse_tensor = SparseTensor.from_tensor(tensor)
     sparse_tensor[0, 0] = 10
     assert sparse_tensor.indices.tolist() == [[1, 1], [2, 2], [0, 0]]
     assert sparse_tensor.values.tolist() == [2, 3, 10]

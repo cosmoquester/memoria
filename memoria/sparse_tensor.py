@@ -121,7 +121,9 @@ class SparseTensor:
         return SparseTensor(new_indices, new_values, self.default_value, new_shape)
 
     def __setitem__(
-        self, raw_keys: Union[int, slice, torch.Tensor, Tuple, List], value: Union[int, float, torch.Tensor]
+        self,
+        raw_keys: Union[int, slice, torch.Tensor, Tuple, List],
+        value: Union[int, float, torch.Tensor, "SparseTensor"],
     ):
         keys = self.__get_keys_with_raw_keys(raw_keys)
         selected_mask = torch.ones([self.indices.size(0)], dtype=torch.bool, device=self.device)
@@ -183,7 +185,9 @@ class SparseTensor:
 
         if isinstance(value, int):
             new_values = torch.tensor([value] * new_indices.size(0), device=self.device, dtype=self.values.dtype)
-        elif isinstance(value, torch.Tensor):
+        if isinstance(value, SparseTensor):
+            value = value.to_dense()
+        if isinstance(value, torch.Tensor):
             tensor_key_start_dim = tensor_key_dims[0]
             value_shape = (
                 [len(keys[dim]) for dim in range(tensor_key_start_dim)]
@@ -246,7 +250,7 @@ class SparseTensor:
     def from_tensor(cls, tensor: torch.Tensor, default_value: Union[int, float] = 0):
         indices = torch.nonzero(tensor != default_value, as_tuple=True)
         values = tensor[indices]
-        sparse_tensor = cls(torch.stack(indices, dim=1), values, default_value)
+        sparse_tensor = cls(torch.stack(indices, dim=1), values, default_value, tensor.shape)
         return sparse_tensor
 
     def to_dense(self) -> torch.Tensor:

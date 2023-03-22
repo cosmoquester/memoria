@@ -82,6 +82,56 @@ def test_get_item():
     assert selected.tolist() == [[0, 0], [0, 3]]
 
 
+def test_set_item():
+    tensor = torch.tensor([[1, 0, 0], [0, 2, 0], [0, 0, 3]], dtype=torch.int32)
+    sparse_tensor = SparseTensor.from_tensor(tensor)
+
+    sparse_tensor[0, 0] = 10
+    assert sparse_tensor.indices.tolist() == [[1, 1], [2, 2], [0, 0]]
+    assert sparse_tensor.values.tolist() == [2, 3, 10]
+    assert sparse_tensor.to_dense().tolist() == [[10, 0, 0], [0, 2, 0], [0, 0, 3]]
+
+    sparse_tensor[1] = 20
+    assert sparse_tensor.indices.tolist() == [[2, 2], [0, 0], [1, 0], [1, 1], [1, 2]]
+    assert sparse_tensor.values.tolist() == [3, 10, 20, 20, 20]
+    assert sparse_tensor.to_dense().tolist() == [[10, 0, 0], [20, 20, 20], [0, 0, 3]]
+
+    sparse_tensor[:, 2] = 30
+    assert sparse_tensor.indices.tolist() == [[0, 0], [1, 0], [1, 1], [0, 2], [1, 2], [2, 2]]
+    assert sparse_tensor.values.tolist() == [10, 20, 20, 30, 30, 30]
+    assert sparse_tensor.to_dense().tolist() == [[10, 0, 30], [20, 20, 30], [0, 0, 30]]
+
+    sparse_tensor = SparseTensor.from_tensor(tensor)
+    sparse_tensor[torch.tensor([0, 2])] = 40
+    assert sparse_tensor.indices.tolist() == [[1, 1], [0, 0], [0, 1], [0, 2], [2, 0], [2, 1], [2, 2]]
+    assert sparse_tensor.values.tolist() == [2, 40, 40, 40, 40, 40, 40]
+    assert sparse_tensor.to_dense().tolist() == [[40, 40, 40], [0, 2, 0], [40, 40, 40]]
+
+    sparse_tensor = SparseTensor.from_tensor(tensor)
+    sparse_tensor[torch.tensor([0, 2]), 2] = 50
+    assert sparse_tensor.indices.tolist() == [[0, 0], [1, 1], [0, 2], [2, 2]]
+    assert sparse_tensor.values.tolist() == [1, 2, 50, 50]
+    assert sparse_tensor.to_dense().tolist() == [[1, 0, 50], [0, 2, 0], [0, 0, 50]]
+
+    sparse_tensor = SparseTensor.from_tensor(tensor)
+    sparse_tensor[torch.tensor([[[0, 2]]])] = 60
+    assert sparse_tensor.indices.tolist() == [[1, 1], [0, 0], [0, 1], [0, 2], [2, 0], [2, 1], [2, 2]]
+    assert sparse_tensor.values.tolist() == [2, 60, 60, 60, 60, 60, 60]
+    assert sparse_tensor.to_dense().tolist() == [[60, 60, 60], [0, 2, 0], [60, 60, 60]]
+
+    sparse_tensor = SparseTensor.from_tensor(tensor)
+    sparse_tensor[torch.tensor([[0, 1], [2, 0]]), torch.tensor([[1, 2], [2, 0]])] = 70
+    assert sparse_tensor.indices.tolist() == [[1, 1], [0, 0], [0, 1], [1, 2], [2, 2]]
+    assert sparse_tensor.values.tolist() == [2, 70, 70, 70, 70]
+    assert sparse_tensor.to_dense().tolist() == [[70, 70, 0], [0, 2, 70], [0, 0, 70]]
+
+    sparse_tensor = SparseTensor.from_tensor(tensor)
+    sparse_tensor[0:2] = 80
+    assert sparse_tensor.indices.tolist() == [[2, 2], [0, 0], [0, 1], [0, 2], [1, 0], [1, 1], [1, 2]]
+    assert sparse_tensor.values.tolist() == [3, 80, 80, 80, 80, 80, 80]
+    assert sparse_tensor.to_dense().tolist() == [[80, 80, 80], [80, 80, 80], [0, 0, 3]]
+
+
 def test_diagonal():
     tensor = torch.randn(2, 5, 3, 5)
     sparse_tensor = SparseTensor.from_tensor(tensor)

@@ -96,3 +96,25 @@ def test_equals():
     assert tensor == sparse_tensor
     assert (tensor == sparse_tensor.to_dense()).all()
     assert sparse_tensor != SparseTensor.from_tensor(torch.randn(2, 5, 3, 5))
+
+
+def test_add():
+    tensor = torch.randint(0, 5, [2, 5, 3, 5])
+    tensor2 = torch.randint(0, 5, [2, 5, 3, 5])
+    sparse_tensor = SparseTensor.from_tensor(tensor)
+    sparse_tensor2 = SparseTensor.from_tensor(tensor2)
+
+    assert (tensor + 1 == (sparse_tensor + 1).to_dense()).all()
+    assert (tensor + tensor == (sparse_tensor + sparse_tensor).to_dense()).all()
+    assert (tensor + tensor2 == (sparse_tensor + sparse_tensor2).to_dense()).all()
+
+
+def test_unsqueeze():
+    tensor = torch.randn(2, 5, 3, 5)
+    sparse_tensor = SparseTensor.from_tensor(tensor)
+
+    assert sparse_tensor.unsqueeze(0).shape == (1, 2, 5, 3, 5)
+    assert sparse_tensor.unsqueeze(1).shape == (2, 1, 5, 3, 5)
+    assert sparse_tensor.unsqueeze(2).shape == (2, 5, 1, 3, 5)
+    assert sparse_tensor.unsqueeze(3).shape == (2, 5, 3, 1, 5)
+    assert sparse_tensor.unsqueeze(4).shape == (2, 5, 3, 5, 1)

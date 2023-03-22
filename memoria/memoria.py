@@ -192,7 +192,7 @@ class Memoria:
             device=nearest_shortterm_memory_indices.device,
         ).unsqueeze(1)
         # [BatchSize, NumInitialLTMs, MemoryLength]
-        induce_counts = self.engrams.induce_counts[index_0, nearest_shortterm_memory_indices]
+        induce_counts = self.engrams.induce_counts[index_0, nearest_shortterm_memory_indices].to_dense()
         # [BatchSize, MemoryLength]
         ltm_mask = self.engrams.longterm_memory_mask
 
@@ -251,11 +251,11 @@ class Memoria:
 
         for depth in range(self.ltm_search_depth):
             last_ltm_indices = found_ltm_indices[:, depth]
-            reachable_induce_counts = longterm_memory.induce_counts.masked_fill(unreachable.unsqueeze(1), -1)
             # [BatchSize, NumUniqueInitialLTMs, NumLTMems]
-            last_ltm_reachable_induce_counts = reachable_induce_counts[index_0, last_ltm_indices]
+            induce_counts = longterm_memory.induce_counts[index_0, last_ltm_indices].to_dense()
+            reachable_induce_counts = induce_counts.masked_fill(unreachable.unsqueeze(1), -1)
 
-            current_ltm_indices = last_ltm_reachable_induce_counts.argmax(dim=2)
+            current_ltm_indices = reachable_induce_counts.argmax(dim=2)
             current_ltm_indices.masked_fill_(unreachable[index_0, current_ltm_indices], -1)
             found_ltm_indices[:, depth + 1] = current_ltm_indices
             unreachable[index_0, current_ltm_indices] = True

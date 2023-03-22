@@ -152,6 +152,12 @@ def test_set_item():
     assert sparse_tensor.values.tolist() == [3, 80, 80, 80, 80, 80, 80]
     assert sparse_tensor.to_dense().tolist() == [[80, 80, 80], [80, 80, 80], [0, 0, 3]]
 
+    sparse_tensor = SparseTensor.from_tensor(tensor)
+    sparse_tensor[0:2] = torch.tensor([1, 1, 2])
+    assert sparse_tensor.indices.tolist() == [[2, 2], [0, 0], [0, 1], [0, 2], [1, 0], [1, 1], [1, 2]]
+    assert sparse_tensor.values.tolist() == [3, 1, 1, 2, 1, 1, 2]
+    assert sparse_tensor.to_dense().tolist() == [[1, 1, 2], [1, 1, 2], [0, 0, 3]]
+
 
 def test_diagonal():
     tensor = torch.randn(2, 5, 3, 5)

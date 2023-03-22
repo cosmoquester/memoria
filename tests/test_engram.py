@@ -21,7 +21,7 @@ def test_init():
     engrams = Engrams(data)
 
     assert (engrams.fire_count == 0).all()
-    assert (engrams.induce_counts == 0).all()
+    assert (engrams.induce_counts.to_dense() == 0).all()
     assert (engrams.engrams_types == EngramType.WORKING.value).all()
 
 
@@ -36,7 +36,7 @@ def test_equals():
 
     assert engrams == engrams2
 
-    engrams2.fire_count[0, 0] += 1
+    engrams2.induce_counts[0, 0, 0] += 1
     assert engrams != engrams2
 
 
@@ -133,20 +133,20 @@ def test_get_mask_with_indices(data: torch.Tensor, indices: torch.Tensor, expect
             torch.tensor([[[0.0], [1.0], [2.0], [3.0]], [[4.0], [5.0], [6.0], [7.0]]]),
             torch.tensor([[1, 3], [0, -1]]),
             torch.tensor([[[1.0], [3.0]], [[4.0], [0.0]]]),
-            torch.tensor([[0, 0], [0, -1]]),
-            torch.tensor([[[0, 0], [0, 0]], [[0, -1], [-1, -1]]]),
+            torch.tensor([[0, 0], [0, 0]]),
+            torch.tensor([[[0, 0], [0, 0]], [[0, 0], [0, 0]]]),
             torch.tensor([[EngramType.WORKING.value] * 2, [EngramType.WORKING.value, EngramType.NULL.value]]),
         ),
         (
             torch.tensor([[[0.0], [1.0], [2.0], [3.0]], [[4.0], [5.0], [6.0], [7.0]], [[8.0], [9.0], [10.0], [11.0]]]),
             torch.tensor([[1, 3, 2], [0, -1, -1], [2, 3, -1]]),
             torch.tensor([[[1.0], [3.0], [2.0]], [[4.0], [0.0], [0.0]], [[10.0], [11.0], [0.0]]]),
-            torch.tensor([[0, 0, 0], [0, -1, -1], [0, 0, -1]]),
+            torch.tensor([[0, 0, 0], [0, 0, 0], [0, 0, 0]]),
             torch.tensor(
                 [
                     [[0, 0, 0], [0, 0, 0], [0, 0, 0]],
-                    [[0, -1, -1], [-1, -1, -1], [-1, -1, -1]],
-                    [[0, 0, -1], [0, 0, -1], [-1, -1, -1]],
+                    [[0, 0, 0], [0, 0, 0], [0, 0, 0]],
+                    [[0, 0, 0], [0, 0, 0], [0, 0, 0]],
                 ]
             ),
             torch.tensor(
@@ -172,7 +172,7 @@ def test_select(
     selected_engrams = engrams.select(indices)
     assert (selected_engrams.data == selected_data).all()
     assert (selected_engrams.fire_count == selected_fire_count).all()
-    assert (selected_engrams.induce_counts == selected_induce_counts).all()
+    assert selected_engrams.induce_counts == selected_induce_counts
     assert (selected_engrams.engrams_types == selected_engram_types).all()
 
 
@@ -194,7 +194,7 @@ def test_fire_together_wire_together():
     engrams.fire_together_wire_together(torch.tensor([[0, 2, 4, -1]]))
     assert (engrams.fire_count == torch.tensor([[1, 0, 1, 0, 1, 0]])).all()
     assert (
-        engrams.induce_counts
+        engrams.induce_counts.to_dense()
         == torch.tensor(
             [
                 [1, 0, 1, 0, 1, 0],
@@ -210,7 +210,7 @@ def test_fire_together_wire_together():
     engrams.fire_together_wire_together(torch.tensor([[0, 1, 2, 2, 3, -1, -10]]))
     assert (engrams.fire_count == torch.tensor([[2, 1, 2, 1, 1, 0]])).all()
     assert (
-        engrams.induce_counts
+        engrams.induce_counts.to_dense()
         == torch.tensor(
             [
                 [2, 1, 2, 1, 1, 0],
@@ -247,20 +247,20 @@ def test_fire_together_wire_together():
             torch.tensor([[[0.0], [1.0], [2.0], [3.0]], [[4.0], [5.0], [6.0], [7.0]]]),
             torch.tensor([[False, True, False, True], [True, False, False, False]]),
             torch.tensor([[[1.0], [3.0]], [[0.0], [4.0]]]),
-            torch.tensor([[0, 0], [-1, 0]]),
-            torch.tensor([[[0, 0], [0, 0]], [[-1, -1], [-1, 0]]]),
+            torch.tensor([[0, 0], [0, 0]]),
+            torch.tensor([[[0, 0], [0, 0]], [[0, 0], [0, 0]]]),
             torch.tensor([[EngramType.WORKING.value] * 2, [EngramType.NULL.value, EngramType.WORKING.value]]),
         ),
         (
             torch.tensor([[[0.0], [1.0], [2.0], [3.0]], [[4.0], [5.0], [6.0], [7.0]], [[8.0], [9.0], [10.0], [11.0]]]),
             torch.tensor([[False, True, True, True], [True, False, False, False], [False, False, True, True]]),
             torch.tensor([[[1.0], [2.0], [3.0]], [[0.0], [0.0], [4.0]], [[0.0], [10.0], [11.0]]]),
-            torch.tensor([[0, 0, 0], [-1, -1, 0], [-1, 0, 0]]),
+            torch.tensor([[0, 0, 0], [0, 0, 0], [0, 0, 0]]),
             torch.tensor(
                 [
                     [[0, 0, 0], [0, 0, 0], [0, 0, 0]],
-                    [[-1, -1, -1], [-1, -1, -1], [-1, -1, 0]],
-                    [[-1, -1, -1], [-1, 0, 0], [-1, 0, 0]],
+                    [[0, 0, 0], [0, 0, 0], [0, 0, 0]],
+                    [[0, 0, 0], [0, 0, 0], [0, 0, 0]],
                 ]
             ),
             torch.tensor(
@@ -286,7 +286,7 @@ def test_mask_select(
     selected_engrams = engrams.mask_select(mask)
     assert (selected_engrams.data == selected_data).all()
     assert (selected_engrams.fire_count == selected_fire_count).all()
-    assert (selected_engrams.induce_counts == selected_induce_counts).all()
+    assert selected_engrams.induce_counts == selected_induce_counts
     assert (selected_engrams.engrams_types == selected_engram_types).all()
 
 
@@ -345,7 +345,21 @@ def test_delete():
             ]
         )
     ).all()
-    assert (engrams.fire_count == torch.tensor([[-1, 0, 0, 0], [0, 0, 0, 0]])).all()
+    assert (engrams.fire_count == torch.tensor([[0, 0, 0, 0], [0, 0, 0, 0]])).all()
+    assert (
+        engrams.engrams_types
+        == torch.tensor(
+            [
+                [EngramType.NULL.value, EngramType.WORKING.value, EngramType.WORKING.value, EngramType.WORKING.value],
+                [
+                    EngramType.WORKING.value,
+                    EngramType.WORKING.value,
+                    EngramType.WORKING.value,
+                    EngramType.WORKING.value,
+                ],
+            ]
+        )
+    ).all()
 
 
 def test_lifespan():

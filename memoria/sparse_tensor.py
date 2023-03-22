@@ -191,7 +191,7 @@ class SparseTensor:
             tensor_key_start_dim = tensor_key_dims[0]
             value_shape = (
                 [len(keys[dim]) for dim in range(tensor_key_start_dim)]
-                + [tensor_key_shape]
+                + tensor_key_shape
                 + [len(keys[dim]) for dim in range(tensor_key_start_dim + 1, len(keys)) if dim not in tensor_key_dims]
             )
             new_values = value.expand(*value_shape).flatten()

@@ -168,3 +168,11 @@ def test_unsqueeze():
     assert sparse_tensor.unsqueeze(2).shape == (2, 5, 1, 3, 5)
     assert sparse_tensor.unsqueeze(3).shape == (2, 5, 3, 1, 5)
     assert sparse_tensor.unsqueeze(4).shape == (2, 5, 3, 5, 1)
+
+
+def test_to():
+    tensor = torch.randn(2, 5, 3, 5)
+    sparse_tensor = SparseTensor.from_tensor(tensor)
+
+    assert sparse_tensor.to(torch.device("cpu")) == sparse_tensor
+    assert (sparse_tensor.to(torch.device("cpu")).to_dense() == tensor).all()

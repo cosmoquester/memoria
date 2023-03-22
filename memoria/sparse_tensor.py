@@ -246,6 +246,9 @@ class SparseTensor:
         shape = self.shape[:dim1] + self.shape[dim1 + 1 :]
         return SparseTensor(indices, values, self.default_value, shape)
 
+    def to(self, device: torch.device) -> "SparseTensor":
+        return SparseTensor(self.indices.to(device), self.values.to(device), self.default_value, self.shape)
+
     def tolist(self) -> list:
         return self.to_dense().tolist()
 

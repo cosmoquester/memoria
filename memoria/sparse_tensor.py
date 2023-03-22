@@ -151,9 +151,9 @@ class SparseTensor:
 
     @classmethod
     def from_tensor(cls, tensor: torch.Tensor, default_value: Union[int, float] = 0):
-        indices = torch.nonzero(tensor != default_value)
-        values = tensor[indices[:, 0], indices[:, 1]]
-        sparse_tensor = cls(indices, values, default_value)
+        indices = torch.nonzero(tensor != default_value, as_tuple=True)
+        values = tensor[indices]
+        sparse_tensor = cls(torch.stack(indices, dim=1), values, default_value)
         return sparse_tensor
 
     def to_dense(self) -> torch.Tensor:

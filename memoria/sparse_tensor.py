@@ -233,7 +233,7 @@ class SparseTensor:
 
     def to_dense(self) -> torch.Tensor:
         tensor = torch.full(self.shape, self.default_value, dtype=self.values.dtype, device=self.device)
-        tensor[self.indices.tensor_split(self.indices.size(1), dim=1)] = self.values.unsqueeze(1)
+        tensor[self.indices.unbind(dim=1)] = self.values
         return tensor
 
     def diagonal(self, dim1: int = 0, dim2: int = 1) -> torch.Tensor:

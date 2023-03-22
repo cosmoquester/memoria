@@ -85,6 +85,12 @@ def test_get_item():
     assert selected.values.tolist() == [3]
     assert selected.tolist() == [[0, 0], [0, 3]]
 
+    selected = sparse_tensor[torch.tensor([0, 1]), torch.tensor([]).long().view(2, 0)]
+    assert selected.shape == (2, 0)
+    assert selected.indices.tolist() == []
+    assert selected.values.tolist() == []
+    assert selected.tolist() == [[], []]
+
 
 def test_set_item():
     tensor = torch.tensor([[1, 0, 0], [0, 2, 0], [0, 0, 3]], dtype=torch.int32)

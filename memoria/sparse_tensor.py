@@ -205,7 +205,7 @@ class SparseTensor:
         indices = torch.cat(
             [
                 self.indices[:, :dim],
-                torch.zeros([self.indices.size(0), 1], dtype=torch.int32, device=self.device),
+                torch.zeros([self.indices.size(0), 1], dtype=torch.long, device=self.device),
                 self.indices[:, dim:],
             ],
             dim=1,
@@ -220,9 +220,9 @@ class SparseTensor:
         dtype: Optional[torch.dtype] = torch.int32,
         device: Optional[torch.device] = None,
     ):
-        indices = torch.empty((0, len(size)), dtype=torch.int32, device=device)
+        indices = torch.empty((0, len(size)), dtype=torch.long, device=device)
         values = torch.empty((0,), dtype=dtype, device=device)
-        return cls(indices, values, default_value)
+        return cls(indices, values, default_value, size)
 
     @classmethod
     def from_tensor(cls, tensor: torch.Tensor, default_value: Union[int, float] = 0):

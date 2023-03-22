@@ -38,7 +38,7 @@ class SparseTensor:
                     start = dim_raw_indices.start or 0
                     stop = min(dim_raw_indices.stop or self.shape[dim], self.shape[dim])
                     step = dim_raw_indices.step or 1
-                    keys[dim] = torch.arange(start, stop, step, dtype=torch.int32, device=self.device)
+                    keys[dim] = slice(start, stop, step)
             elif isinstance(dim_raw_indices, torch.Tensor):
                 keys[dim] = dim_raw_indices
             elif isinstance(dim_raw_indices, list):
@@ -46,10 +46,11 @@ class SparseTensor:
             else:
                 raise ValueError(f"Unsupported index type {type(keys)}")
 
-        # Process Scalar Index
         current_data_indices = self.indices.clone()
         current_data_values = self.values.clone()
         current_shape = self.shape
+
+        # Process Scalar Index
         for dim, dim_keys in reversed(list(enumerate(keys))):
             if not isinstance(dim_keys, int):
                 continue
@@ -63,6 +64,25 @@ class SparseTensor:
             current_data_values = selected_values
             keys = keys[:dim] + keys[dim + 1 :]
             current_shape = current_shape[:dim] + current_shape[dim + 1 :]
+
+        # Process Slice Index
+        for dim, dim_keys in enumerate(keys):
+            if not isinstance(dim_keys, slice):
+                continue
+
+            dim_key_values = list(range(dim_keys.start, dim_keys.stop, dim_keys.step))
+            selected_mask = (current_data_indices[:, dim : dim + 1] == torch.tensor([dim_key_values])).any(dim=1)
+            selected_values = current_data_values.masked_select(selected_mask)
+            selected_indices = current_data_indices.masked_select(selected_mask.unsqueeze(1)).view(
+                -1, current_data_indices.size(1)
+            )
+            selected_indices[:, dim] -= dim_keys.start
+            selected_indices[:, dim] //= dim_keys.step
+
+            current_data_indices = selected_indices
+            current_data_values = selected_values
+            keys[dim] = None
+            current_shape = current_shape[:dim] + (len(dim_key_values),) + current_shape[dim + 1 :]
 
         # Process Complex Index
         if current_shape == ():

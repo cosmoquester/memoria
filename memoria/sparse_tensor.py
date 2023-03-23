@@ -81,8 +81,6 @@ class SparseTensor:
         dim_keys = [(dim, key) for dim, key in enumerate(keys) if key is not None]
         live_dims = [dim for dim, _ in dim_keys]
         new_indices_dim = live_dims[0]
-        new_indices = []
-        new_values = []
         new_shape = []
         for dim, key in enumerate(keys):
             if dim == new_indices_dim:
@@ -98,35 +96,30 @@ class SparseTensor:
                 new_shape,
             )
 
-        # TODO: Improve speed, too slow now
-        for key_idx in product(*[range(s) for s in new_key_shape if s is not None]):
-            selected_mask = torch.ones([current_data_indices.size(0)], dtype=torch.bool, device=self.device)
-            for dim, key in dim_keys:
-                # Boradcast size 1
-                key_idx_boardcast = tuple(idx_ if sz != 1 else 0 for idx_, sz in zip(key_idx, key.shape))
-                selected_mask &= current_data_indices[:, dim] == key[key_idx_boardcast]
+        key_indices = torch.tensor(
+            list(product(*[range(s) for s in new_key_shape if s is not None])), device=self.device
+        )
+        key_indices[(torch.tensor([new_key_shape], device=self.device) == 1).expand(key_indices.shape)] = 0
+        tensor_keys = torch.stack([key.expand(new_key_shape) for key in keys if key is not None], dim=-1)
+        selected_mask = (
+            tensor_keys[key_indices.unbind(-1)].unsqueeze(1) == current_data_indices[:, live_dims].unsqueeze(0)
+        ).all(dim=2)
 
-            selected_indices = current_data_indices.masked_select(selected_mask.unsqueeze(1)).view(
-                -1, current_data_indices.size(1)
-            )
-            selected_indices = torch.cat(
-                [
-                    selected_indices[:, :new_indices_dim],
-                    torch.tensor([key_idx], device=self.device).expand([selected_indices.size(0), len(key_idx)]),
-                ]
-                + [
-                    selected_indices[:, i : i + 1]
-                    for i in range(new_indices_dim + 1, selected_indices.size(1))
-                    if i not in live_dims
+        selected_indices_tensor_key_index, selected_indices_non_tensor_key_index = selected_mask.nonzero(as_tuple=True)
+        selected_indices_tensor_keys = key_indices[selected_indices_tensor_key_index]
+        selected_indices_non_tensor_keys = current_data_indices[selected_indices_non_tensor_key_index]
+
+        new_indices = torch.cat(
+            [
+                selected_indices_non_tensor_keys[:, :new_indices_dim],
+                selected_indices_tensor_keys,
+                selected_indices_non_tensor_keys[
+                    :, [dim for dim in range(new_indices_dim, len(keys)) if keys[dim] is None]
                 ],
-                dim=1,
-            )
-            selected_values = current_data_values.masked_select(selected_mask)
-            new_indices.append(selected_indices)
-            new_values.append(selected_values)
-
-        new_indices = torch.cat(new_indices, dim=0)
-        new_values = torch.cat(new_values, dim=0)
+            ],
+            dim=1,
+        )
+        new_values = current_data_values[selected_indices_non_tensor_key_index]
 
         return SparseTensor(new_indices, new_values, self.default_value, new_shape)
 

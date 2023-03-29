@@ -119,7 +119,9 @@ class Memoria:
         Returns:
             attention weights shaped [BatchSize, WorkingMemoryLength, ShorttermMemoryLength]
         """
-        weight = working_memory.data @ shortterm_memory.data.transpose(1, 2)
+        normalized_wm = working_memory.data / working_memory.data.norm(dim=2, keepdim=True)
+        normalized_stm = shortterm_memory.data / shortterm_memory.data.norm(dim=2, keepdim=True)
+        weight = normalized_wm @ normalized_stm.transpose(1, 2)
         weight = weight.softmax(dim=2)
         return weight
 

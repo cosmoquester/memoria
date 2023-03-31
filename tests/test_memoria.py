@@ -12,6 +12,7 @@ def test_add_working_memory():
         stm_capacity=100,
         ltm_min_fire_count=0,
         initial_lifespan=100,
+        num_final_ltms=100,
     )
     memoria.add_working_memory(torch.randn(3, 10, 32))
     assert len(memoria.engrams) == 30
@@ -25,6 +26,7 @@ def test_calculate_wm_stm_weight():
         stm_capacity=100,
         ltm_min_fire_count=0,
         initial_lifespan=100,
+        num_final_ltms=100,
     )
     memoria.add_working_memory(torch.randn(3, 10, 32))
 
@@ -42,6 +44,7 @@ def test_remind_shortterm_memory():
         stm_capacity=100,
         ltm_min_fire_count=0,
         initial_lifespan=100,
+        num_final_ltms=100,
     )
 
     weight = torch.tensor([[[0.51, 0.2, 0.2, 0.8]]])
@@ -58,6 +61,7 @@ def test_find_stm_nearest_to_ltm():
         stm_capacity=100,
         ltm_min_fire_count=0,
         initial_lifespan=100,
+        num_final_ltms=100,
     )
 
     weight = torch.tensor([[[0.51, 0.2, 0.9, 0.8], [0.9, 0.1, 0.2, 0.5]]])
@@ -79,6 +83,7 @@ def test_find_initial_ltm():
         stm_capacity=100,
         ltm_min_fire_count=0,
         initial_lifespan=100,
+        num_final_ltms=100,
     )
 
     stm = Engrams(torch.randn(1, num_stm, 32), engrams_types=EngramType.SHORTTERM)
@@ -115,6 +120,7 @@ def test_search_longterm_memories_with_initials():
         stm_capacity=100,
         ltm_min_fire_count=0,
         initial_lifespan=100,
+        num_final_ltms=100,
     )
 
     stm = Engrams(torch.randn(1, num_stm, 32), engrams_types=EngramType.SHORTTERM)
@@ -124,8 +130,8 @@ def test_search_longterm_memories_with_initials():
     initial_ltm_indices = torch.tensor([[5, 7]])
     searched_ltm_indices = memoria._search_longterm_memories_with_initials(initial_ltm_indices, ltm)
 
-    assert searched_ltm_indices.shape == torch.Size([1, ltm_search_depth + 1, initial_ltm_indices.size(1)])
-    assert (searched_ltm_indices == torch.tensor([[[0, 2], [1, 1], [3, 3], [-1, -1]]])).all()
+    assert searched_ltm_indices.shape == torch.Size([1, (ltm_search_depth + 1) * initial_ltm_indices.size(1)])
+    assert (searched_ltm_indices == torch.tensor([[0, 2, 1, 1, 3, 3, -1, -1]])).all()
 
 
 def test_memorize_working_memory_as_shortterm_memory():
@@ -142,6 +148,7 @@ def test_memorize_working_memory_as_shortterm_memory():
         stm_capacity=100,
         ltm_min_fire_count=0,
         initial_lifespan=100,
+        num_final_ltms=100,
     )
 
     wm = Engrams(torch.randn(batch_size, num_wm, 32), engrams_types=EngramType.WORKING)
@@ -168,6 +175,7 @@ def test_memorize_shortterm_memory_as_longterm_memory_or_drop():
         stm_capacity=2,
         ltm_min_fire_count=ltm_min_fire_count,
         initial_lifespan=100,
+        num_final_ltms=100,
     )
 
     fire_count = torch.tensor([[0, 1, 2, 3, 0]], dtype=torch.int32)
@@ -194,6 +202,7 @@ def test_remind():
         stm_capacity=stm_capacity,
         ltm_min_fire_count=ltm_min_fire_count,
         initial_lifespan=100,
+        num_final_ltms=100,
     )
 
     batch_size = 3
@@ -247,6 +256,7 @@ def test_reset_memory():
         stm_capacity=100,
         ltm_min_fire_count=0,
         initial_lifespan=100,
+        num_final_ltms=100,
     )
     memoria.add_working_memory(torch.randn(3, 10, 32))
     memoria.reset_memory()

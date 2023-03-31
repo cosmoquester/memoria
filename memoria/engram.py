@@ -311,6 +311,8 @@ class Engrams:
             selected_induce_counts.masked_fill_(~(reverse_mask.unsqueeze(2) @ reverse_mask.unsqueeze(1)).bool(), -1)
             selected_engrams_types.masked_fill_(null_indices_mask, EngramType.NULL.value)
             selected_lifespan.masked_fill_(null_indices_mask, -1.0)
+        else:
+            raise ValueError("indices must be 1d or 2d tensor")
         return Engrams(selected_data, selected_induce_counts, selected_engrams_types, selected_lifespan)
 
     @torch.no_grad()

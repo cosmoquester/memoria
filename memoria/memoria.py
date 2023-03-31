@@ -16,6 +16,7 @@ class Memoria:
         ltm_search_depth: int,
         ltm_min_fire_count: int,
         initial_lifespan: int,
+        num_final_ltms: int,
         enable_stm: bool = True,
         enable_ltm: bool = True,
         device: Optional[Union[str, torch.device]] = None,
@@ -29,6 +30,7 @@ class Memoria:
             ltm_search_depth: the maximum number of depth for dfs memory search
             ltm_min_fire_count: the minimum fire count value to memorize shortterm memory into longterm memory.
             initial_lifespan: initial lifespan for each engrams
+            num_final_ltms: the number of longterm memories to return
             enable_stm: whether to use shortterm memory.
                 this module will not return shortterm memory indices, but keep shortterm memory
                 to remind longterm memory. so when `enable ltm` is True.
@@ -43,6 +45,7 @@ class Memoria:
         self.ltm_search_depth: int = ltm_search_depth
         self.ltm_min_fire_count: int = ltm_min_fire_count
         self.initial_lifespan: int = initial_lifespan
+        self.num_final_ltms: int = num_final_ltms
         self.enable_stm: bool = enable_stm
         self.enable_ltm: bool = enable_ltm
         self.device = torch.device(device) if device else None
@@ -76,8 +79,8 @@ class Memoria:
         reminded_stm_indices = self._remind_shortterm_memory(weight, stm_indices)
         nearest_stm_indices = self._find_stm_nearest_to_ltm(weight, stm_indices)
         initial_ltm_indices = self._find_initial_longterm_memory(nearest_stm_indices)
-        reminded_ltm_indices = self._search_longterm_memories_with_initials(initial_ltm_indices, ltm_engrams)
-        reminded_ltm_indices = reminded_ltm_indices.view(reminded_ltm_indices.size(0), -1)
+        searched_ltm_indices = self._search_longterm_memories_with_initials(initial_ltm_indices, ltm_engrams)
+        reminded_ltm_indices = self._select_final_ltms(wm_engrams, searched_ltm_indices)
 
         reminded_indices = torch.cat([reminded_stm_indices, reminded_ltm_indices], dim=1)
 
@@ -218,7 +221,7 @@ class Memoria:
             initial_longterm_memory_indices: initial ltm indices shaped [BatchSize, NumUniqueInitialLTMs]
             longterm_memory: longterm memory engrams
         Return:
-            searched ltm indices shaped [BatchSize, SearchDepth + 1, NumUniqueInitialLTMs]
+            searched ltm indices shaped [BatchSize, (SearchDepth + 1) * NumUniqueInitialLTMs]
         """
         batch_size, num_init_ltms = initial_longterm_memory_indices.shape
         local_initial_ltm_indices = self.engrams.get_local_indices_from_global_indices(
@@ -226,7 +229,7 @@ class Memoria:
         )
         if initial_longterm_memory_indices.numel() == 0 or len(longterm_memory) == 0:
             return torch.zeros(
-                [batch_size, self.ltm_search_depth + 1, num_init_ltms],
+                [batch_size, (self.ltm_search_depth + 1) * num_init_ltms],
                 dtype=torch.long,
                 device=initial_longterm_memory_indices.device,
                 requires_grad=False,
@@ -259,7 +262,31 @@ class Memoria:
             found_ltm_indices[:, depth + 1] = current_ltm_indices
             unreachable[index_0, current_ltm_indices] = True
 
-        return found_ltm_indices
+        return found_ltm_indices.view(batch_size, -1)
+
+    @torch.no_grad()
+    def _select_final_ltms(self, working_memory: Engrams, found_longterm_memory_indices: torch.Tensor) -> torch.Tensor:
+        """Select top k LTM indices by working memory weights
+
+        Args:
+            working_memory: working memory engrams
+            found_longterm_memory_indices: found ltm indices shaped [BatchSize, NumFoundLTMs]
+        Return:
+            final ltm indices shaped [BatchSize, NumFinalLTMs]
+        """
+        if found_longterm_memory_indices.size(1) == 0:
+            return found_longterm_memory_indices
+
+        # [BatchSize, NumFoundLTMs]
+        found_ltms = self.engrams.select(found_longterm_memory_indices)
+        # [BatchSize, NumFoundLTMs]
+        weight = self._calculate_wm_stm_weight(working_memory, found_ltms).sum(dim=1)
+
+        topk = min(self.num_final_ltms, weight.size(1))
+        # [BatchSize, NumFinalLTMs]
+        final_ltm_indices = weight.topk(topk, dim=1).indices
+        final_ltm_indices = found_longterm_memory_indices.gather(dim=1, index=final_ltm_indices)
+        return final_ltm_indices
 
     @torch.no_grad()
     def _memorize_working_memory_as_shortterm_memory(self):

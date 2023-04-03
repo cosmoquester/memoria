@@ -32,7 +32,7 @@ def test_calculate_wm_stm_weight():
 
     wm = Engrams(torch.randn(3, 10, 32))
     stm = Engrams(torch.randn(3, 20, 32), engrams_types=EngramType.SHORTTERM)
-    weight = memoria._calculate_wm_stm_weight(wm, stm)
+    weight = memoria._calculate_memory_weight(wm, stm)
     assert weight.shape == torch.Size([3, 10, 20])
 
 

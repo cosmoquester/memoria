@@ -75,7 +75,7 @@ class Memoria:
         stm_engrams, stm_indices = self.engrams.get_shortterm_memory()
         ltm_engrams, _ = self.engrams.get_longterm_memory()
 
-        weight = self._calculate_wm_stm_weight(wm_engrams, stm_engrams)
+        weight = self._calculate_memory_weight(wm_engrams, stm_engrams)
         reminded_stm_indices = self._remind_shortterm_memory(weight, stm_indices)
         nearest_stm_indices = self._find_stm_nearest_to_ltm(weight, stm_indices)
         initial_ltm_indices = self._find_initial_longterm_memory(nearest_stm_indices)
@@ -116,13 +116,13 @@ class Memoria:
         self.engrams = self.engrams.mask_select(self.engrams.lifespan > 0)
 
     @torch.no_grad()
-    def _calculate_wm_stm_weight(self, working_memory: Engrams, shortterm_memory: Engrams) -> torch.Tensor:
-        """Calculate attention weight from working memories over shotterm memories
+    def _calculate_memory_weight(self, working_memory: Engrams, key_memory: Engrams) -> torch.Tensor:
+        """Calculate attention weight from working memories over shotterm/longterm memories
 
         Returns:
             attention weights shaped [BatchSize, WorkingMemoryLength, ShorttermMemoryLength]
         """
-        l2_square = (working_memory.data.unsqueeze(2) - shortterm_memory.data.unsqueeze(1)).pow(2).sum(dim=3)
+        l2_square = (working_memory.data.unsqueeze(2) - key_memory.data.unsqueeze(1)).pow(2).sum(dim=3)
         return l2_square.neg().exp()
 
     @torch.no_grad()
@@ -280,7 +280,7 @@ class Memoria:
         # [BatchSize, NumFoundLTMs]
         found_ltms = self.engrams.select(found_longterm_memory_indices)
         # [BatchSize, NumFoundLTMs]
-        weight = self._calculate_wm_stm_weight(working_memory, found_ltms).sum(dim=1)
+        weight = self._calculate_memory_weight(working_memory, found_ltms).sum(dim=1)
 
         topk = min(self.num_final_ltms, weight.size(1))
         # [BatchSize, NumFinalLTMs]

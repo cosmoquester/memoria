@@ -234,6 +234,7 @@ class Engrams:
         self, partial_mask: torch.Tensor, global_indices: torch.Tensor
     ) -> torch.Tensor:
         """Get local ltm indices from global ltm indices
+                -1 means null index, ignored
 
         Args:
             partial_mask: mask to select sub-engrams shaped [BatchSize, MemoryLength]
@@ -242,13 +243,16 @@ class Engrams:
         partial_indices = self.get_indices_with_mask(partial_mask)
         partial_engrams = self.select(partial_indices)
 
-        selected_partial_mask = torch.full_like(
-            partial_mask, False, requires_grad=False, device=partial_mask.device, dtype=torch.bool
+        selected_partial_mask_shape = list(partial_mask.shape)
+        selected_partial_mask_shape[1] += 1
+        selected_partial_mask = torch.full(
+            selected_partial_mask_shape, False, requires_grad=False, device=partial_mask.device, dtype=torch.bool
         )
         index_0 = torch.arange(
             self.batch_size, requires_grad=False, device=partial_mask.device, dtype=torch.long
         ).unsqueeze(1)
         selected_partial_mask[index_0, global_indices] = True
+        selected_partial_mask[:, -1] = False
 
         # [BatchSize, NumLTMems]
         local_selected_partial_mask = selected_partial_mask[index_0, partial_indices]

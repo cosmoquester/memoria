@@ -41,8 +41,9 @@ jobs:
       - run:
           name: Upload coverage report
           command: |
-            source env/bin/activate
-            codecov
+            curl -Os https://uploader.codecov.io/latest/linux/codecov
+            chmod +x codecov
+            ./codecov
 
   check-linting:
     executor: python-executor

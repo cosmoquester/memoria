@@ -99,7 +99,7 @@ def test_search_longterm_memories_with_initials():
     initial_ltm_indices = torch.tensor([[5, 7]])
     searched_ltm_indices = memoria._search_longterm_memories_with_initials(initial_ltm_indices, ltm)
 
-    assert (searched_ltm_indices == torch.tensor([[-1, 0, 1, 2, 3]])).all()
+    assert (searched_ltm_indices == torch.tensor([[1, 3, 2, -1, 0]])).all()
 
 
 def test_memorize_working_memory_as_shortterm_memory():

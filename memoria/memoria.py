@@ -12,7 +12,6 @@ class Memoria:
         self,
         num_reminded_stm: float,
         stm_capacity: int,
-        num_initial_ltm: int,
         ltm_search_depth: int,
         ltm_min_fire_count: int,
         initial_lifespan: int,
@@ -26,7 +25,6 @@ class Memoria:
         Args:
             num_reminded_stm: the number of stm reminded
             stm_capacity: the maximum memory length per batch for shortterm memory
-            num_initial_ltm: initial longterm memory to search relevant longterm memories per query.
             ltm_search_depth: the maximum number of depth for dfs memory search
             ltm_min_fire_count: the minimum fire count value to memorize shortterm memory into longterm memory.
             initial_lifespan: initial lifespan for each engrams
@@ -41,7 +39,6 @@ class Memoria:
 
         self.num_reminded_stm: float = num_reminded_stm
         self.stm_capacity: int = stm_capacity
-        self.num_initial_ltm: int = num_initial_ltm
         self.ltm_search_depth: int = ltm_search_depth
         self.ltm_min_fire_count: int = ltm_min_fire_count
         self.initial_lifespan: int = initial_lifespan
@@ -77,8 +74,7 @@ class Memoria:
 
         weight = self._calculate_memory_weight(wm_engrams, stm_engrams)
         reminded_stm_indices = self._remind_shortterm_memory(weight, stm_indices)
-        nearest_stm_indices = self._find_stm_nearest_to_ltm(weight, stm_indices)
-        initial_ltm_indices = self._find_initial_longterm_memory(nearest_stm_indices)
+        initial_ltm_indices = self._find_initial_longterm_memory(reminded_stm_indices)
         searched_ltm_indices = self._search_longterm_memories_with_initials(initial_ltm_indices, ltm_engrams)
         reminded_ltm_indices = self._select_final_ltms(wm_engrams, searched_ltm_indices)
 
@@ -147,36 +143,6 @@ class Memoria:
         index_0 = torch.arange(weight.size(0), device=weight.device, requires_grad=False, dtype=torch.long)
         reminded_mask[index_0.unsqueeze(1), reminded_indices] = True
         return shortterm_memory_indices.masked_fill(~reminded_mask, -1)
-
-    @torch.no_grad()
-    def _find_stm_nearest_to_ltm(self, weight: torch.Tensor, shortterm_memory_indices: torch.Tensor) -> torch.Tensor:
-        """Get shortterm memory indices nearest to initial ltm by its working memories
-
-        Args:
-            weight: attention weights got from `calculate_wm_stm_weight` method
-                shaped [BatchSize, WorkingMemoryLength, ShorttermMemoryLength]
-            shortterm_memory_indices: global indices of shortterm memories shaped [BatchSize, ShorttermMemoryLength]
-        Returns:
-            indices selected shortterm memory indices shaped [BatchSize, NumInitialLTMs]
-                -1 means unselected. other values mean selected
-        """
-        batch_size, _, num_stms = weight.size()
-
-        # [BatchSize, WorkingMemoryLength, FiringShorttermMemories]
-        _, top_indices = weight.topk(k=min(self.num_initial_ltm, num_stms), dim=2)
-
-        # [BatchSize, WorkingMemoryLength * FiringShorttermMemories]
-        top_indices = top_indices.view(batch_size, -1)
-
-        # Get STM Indices Nearest to Initial LTM
-        index_0 = torch.arange(batch_size, requires_grad=False, device=weight.device, dtype=torch.long).unsqueeze(1)
-        nearest_stm_mask = torch.zeros_like(
-            shortterm_memory_indices, requires_grad=False, device=weight.device, dtype=torch.bool
-        )
-        nearest_stm_mask[index_0, top_indices] = True
-        nearest_stm_indices = shortterm_memory_indices.masked_fill(~nearest_stm_mask, -1)
-        nearest_stm_indices = torch.unique(nearest_stm_indices, dim=1)  # Not necessary
-        return nearest_stm_indices
 
     @torch.no_grad()
     def _find_initial_longterm_memory(self, nearest_shortterm_memory_indices: torch.Tensor) -> torch.Tensor:

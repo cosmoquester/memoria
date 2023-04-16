@@ -3,6 +3,7 @@ from typing import Optional, Tuple, Union
 import torch
 
 from .engram import Engrams, EngramType
+from .utils import super_unique
 
 
 class Memoria:
@@ -89,7 +90,7 @@ class Memoria:
         elif not self.enable_stm:
             reminded_indices = reminded_ltm_indices
 
-        reminded_indices = reminded_indices.unique(dim=1)
+        reminded_indices = super_unique(reminded_indices, dim=1)
 
         # [BatchSize, RemindedMemoryLength, HiddenDim]
         reminded_memories = self.engrams.select(reminded_indices).data.to(self.ext_device).contiguous()
@@ -171,7 +172,7 @@ class Memoria:
         initial_ltm_indices.masked_fill_(initial_ltm.engrams_types != EngramType.LONGTERM.value, -1)
 
         # [BatchSize, NumUniqueInitialLTMs]
-        initial_ltm_indices = torch.unique(initial_ltm_indices, dim=1)
+        initial_ltm_indices = super_unique(initial_ltm_indices, dim=1)
         return initial_ltm_indices
 
     @torch.no_grad()
@@ -225,7 +226,7 @@ class Memoria:
             found_ltm_indices[:, depth + 1] = current_ltm_indices
             unreachable[index_0, current_ltm_indices] = True
 
-        return found_ltm_indices.view(batch_size, -1).unique(dim=1)
+        return super_unique(found_ltm_indices.view(batch_size, -1), dim=1)
 
     @torch.no_grad()
     def _select_final_ltms(self, working_memory: Engrams, found_longterm_memory_indices: torch.Tensor) -> torch.Tensor:

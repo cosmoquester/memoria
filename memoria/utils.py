@@ -14,7 +14,7 @@ def super_unique(t: torch.Tensor, dim: int) -> torch.Tensor:
     unique_t_mask = torch.zeros(new_shape, dtype=torch.bool, device=t.device)
     unique_t_mask.scatter_(dim, t.long(), True)
 
-    k = min(t.size(dim), unique_t_mask.size(dim))
+    k = min(t.size(dim), unique_t_mask.sum(dim).max().item())
     validity, unique_t = unique_t_mask.int().topk(k, dim=dim)
     unique_t += min_value
     unique_t.masked_fill_(~validity.bool(), -1)

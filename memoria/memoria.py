@@ -13,7 +13,6 @@ class Memoria:
         num_reminded_stm: float,
         stm_capacity: int,
         ltm_search_depth: int,
-        ltm_min_fire_count: int,
         initial_lifespan: int,
         num_final_ltms: int,
         enable_stm: bool = True,
@@ -26,7 +25,6 @@ class Memoria:
             num_reminded_stm: the number of stm reminded
             stm_capacity: the maximum memory length per batch for shortterm memory
             ltm_search_depth: the maximum number of depth for dfs memory search
-            ltm_min_fire_count: the minimum fire count value to memorize shortterm memory into longterm memory.
             initial_lifespan: initial lifespan for each engrams
             num_final_ltms: the number of longterm memories to return
             enable_stm: whether to use shortterm memory.
@@ -40,7 +38,6 @@ class Memoria:
         self.num_reminded_stm: float = num_reminded_stm
         self.stm_capacity: int = stm_capacity
         self.ltm_search_depth: int = ltm_search_depth
-        self.ltm_min_fire_count: int = ltm_min_fire_count
         self.initial_lifespan: int = initial_lifespan
         self.num_final_ltms: int = num_final_ltms
         self.enable_stm: bool = enable_stm
@@ -107,7 +104,7 @@ class Memoria:
         self.engrams.decrease_lifespan()
 
         self._memorize_working_memory_as_shortterm_memory()
-        self._memorize_shortterm_memory_as_longterm_memory_or_drop()
+        self._memorize_shortterm_memory_as_longterm_memory()
 
         self.engrams = self.engrams.mask_select(self.engrams.lifespan > 0)
 
@@ -260,7 +257,7 @@ class Memoria:
         self.engrams.engrams_types[self.engrams.working_memory_mask] = EngramType.SHORTTERM.value
 
     @torch.no_grad()
-    def _memorize_shortterm_memory_as_longterm_memory_or_drop(self):
+    def _memorize_shortterm_memory_as_longterm_memory(self):
         """Move exceeded shortterm memory to longterm memory or drop"""
         stm_engrams, stm_indices = self.engrams.get_shortterm_memory()
         num_exceeded_stm = stm_engrams.memory_length - self.stm_capacity
@@ -270,19 +267,8 @@ class Memoria:
 
         # [BatchSize, NumExceededSTMems]
         exceeded_stm_indices = stm_indices[:, :num_exceeded_stm]
-        index_0 = torch.arange(
-            self.engrams.batch_size, device=stm_indices.device, requires_grad=False, dtype=torch.long
-        ).unsqueeze(1)
-        # [BatchSize, NumExceededSTMems]
-        exceeded_stm_fire_counts = self.engrams.fire_count[index_0, exceeded_stm_indices]
-
-        memorize_mask = exceeded_stm_fire_counts < self.ltm_min_fire_count
-        memorize_stm_indices = exceeded_stm_indices.masked_fill(memorize_mask, -1)
-        memorize_stm_mask = self.engrams.get_mask_with_indices(memorize_stm_indices)
+        memorize_stm_mask = self.engrams.get_mask_with_indices(exceeded_stm_indices)
         self.engrams.engrams_types[memorize_stm_mask] = EngramType.LONGTERM.value
-
-        forget_indices = exceeded_stm_indices.masked_fill(~memorize_mask, -1)
-        self.engrams.delete(forget_indices)
 
     def reset_memory(self):
         """Reset memory"""

@@ -16,6 +16,7 @@ class Memoria:
         ltm_search_depth: int,
         initial_lifespan: int,
         num_final_ltms: int,
+        reactivate_rate: float,
         enable_stm: bool = True,
         enable_ltm: bool = True,
         device: Optional[Union[str, torch.device]] = None,
@@ -28,6 +29,7 @@ class Memoria:
             ltm_search_depth: the maximum number of depth for dfs memory search
             initial_lifespan: initial lifespan for each engrams
             num_final_ltms: the number of longterm memories to return
+            reactivate_rate: the rate of reactivate stm/ltm memories reminded
             enable_stm: whether to use shortterm memory.
                 this module will not return shortterm memory indices, but keep shortterm memory
                 to remind longterm memory. so when `enable ltm` is True.
@@ -41,6 +43,7 @@ class Memoria:
         self.ltm_search_depth: int = ltm_search_depth
         self.initial_lifespan: int = initial_lifespan
         self.num_final_ltms: int = num_final_ltms
+        self.reactivate_rate: float = reactivate_rate
         self.enable_stm: bool = enable_stm
         self.enable_ltm: bool = enable_ltm
         self.device = torch.device(device) if device else None
@@ -106,6 +109,11 @@ class Memoria:
 
         self._memorize_working_memory_as_shortterm_memory()
         self._memorize_shortterm_memory_as_longterm_memory()
+
+        k = int(indices.size(1) * self.reactivate_rate)
+        top_memory_idx_idx = torch.topk(lifespan_delta, k=k, dim=1).indices
+        top_memory_idx = torch.gather(indices, 1, top_memory_idx_idx)
+        self.engrams.engrams_types.scatter_(1, top_memory_idx, EngramType.WORKING.value)
 
         self.engrams = self.engrams.mask_select(self.engrams.lifespan > 0)
 

@@ -29,6 +29,7 @@ class Engrams:
         data: torch.Tensor,
         induce_counts: Optional[torch.Tensor] = None,
         engrams_types: Optional[Union[torch.Tensor, EngramType]] = None,
+        segment_index: Union[torch.Tensor, int] = None,
         lifespan: Union[torch.Tensor, int] = 0,
     ) -> None:
         self.batch_size, self.memory_length, self.hidden_dim = data.shape
@@ -55,6 +56,17 @@ class Engrams:
             if not isinstance(engrams_types, torch.Tensor)
             else engrams_types.detach().type(torch.uint8)
         )
+        self.segment_index = (
+            torch.full(
+                [self.batch_size, self.memory_length],
+                segment_index,
+                dtype=torch.int32,
+                requires_grad=False,
+                device=data.device,
+            )
+            if isinstance(segment_index, int)
+            else segment_index.detach().type(torch.int32)
+        )
         self.lifespan = (
             torch.full(
                 [self.batch_size, self.memory_length],
@@ -80,6 +92,7 @@ class Engrams:
             (self.data == other.data).all()
             and (self.induce_counts == other.induce_counts).all()
             and (self.engrams_types == other.engrams_types).all()
+            and (self.segment_index == other.segment_index).all()
             and (self.lifespan == other.lifespan).all()
         )
 
@@ -92,6 +105,7 @@ class Engrams:
 
         concatenated_data = torch.cat([self.data, other.data], dim=1)
         concatenated_engrams_types = torch.cat([self.engrams_types, other.engrams_types], dim=1)
+        concatentaed_segment_index = torch.cat([self.segment_index, other.segment_index], dim=1)
         concatenated_lifespan = torch.cat([self.lifespan, other.lifespan], dim=1)
 
         new_memory_length = self.memory_length + other.memory_length
@@ -108,6 +122,7 @@ class Engrams:
             concatenated_data,
             concatenated_induce_counts,
             concatenated_engrams_types,
+            concatentaed_segment_index,
             concatenated_lifespan,
         )
 
@@ -299,6 +314,7 @@ class Engrams:
             selected_data = self.data[:, indices]
             selected_induce_counts = self.induce_counts[:, indices][:, :, indices]
             selected_engrams_types = self.engrams_types[:, indices]
+            selected_segment_index = self.segment_index[:, indices]
             selected_lifespan = self.lifespan[:, indices]
         elif len(indices.shape) == 2:
             index_0 = torch.arange(self.batch_size, device=self.induce_counts.device, requires_grad=False)
@@ -307,6 +323,7 @@ class Engrams:
                 index_0.unsqueeze(1).unsqueeze(2), indices.unsqueeze(2), indices.unsqueeze(1)
             ]
             selected_engrams_types = self.engrams_types[index_0.unsqueeze(1), indices]
+            selected_segment_index = self.segment_index[index_0.unsqueeze(1), indices]
             selected_lifespan = self.lifespan[index_0.unsqueeze(1), indices]
 
             null_indices_mask = indices < 0
@@ -314,10 +331,13 @@ class Engrams:
             selected_data.masked_fill_(null_indices_mask.unsqueeze(2), 0.0)
             selected_induce_counts.masked_fill_(~(reverse_mask.unsqueeze(2) @ reverse_mask.unsqueeze(1)).bool(), -1)
             selected_engrams_types.masked_fill_(null_indices_mask, EngramType.NULL.value)
+            selected_segment_index.masked_fill_(null_indices_mask, -1)
             selected_lifespan.masked_fill_(null_indices_mask, -1.0)
         else:
             raise ValueError("indices must be 1d or 2d tensor")
-        return Engrams(selected_data, selected_induce_counts, selected_engrams_types, selected_lifespan)
+        return Engrams(
+            selected_data, selected_induce_counts, selected_engrams_types, selected_segment_index, selected_lifespan
+        )
 
     @torch.no_grad()
     def delete(self, indices: torch.Tensor) -> None:
@@ -335,6 +355,7 @@ class Engrams:
         self.data = selected.data
         self.induce_counts = selected.induce_counts
         self.engrams_types = selected.engrams_types
+        self.segment_index = selected.segment_index
         self.lifespan = selected.lifespan
 
     @torch.no_grad()

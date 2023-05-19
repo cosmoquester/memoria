@@ -10,4 +10,5 @@ nltk
 
 wandb
 
-git+ssh://git@github.com/cosmoquester/memoria
+# Install Memoria
+../

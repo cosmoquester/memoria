@@ -1,0 +1,12 @@
+torch==1.13.1
+pytorch-lightning==1.8.6
+transformers==4.25.1
+
+datasets
+scikit-learn
+bs4
+nltk
+
+wandb
+
+git+ssh://git@github.com/cosmoquester/memoria

@@ -8,5 +8,5 @@ setup(
     install_requires=["torch"],
     url="https://github.com/cosmoquester/memoria.git",
     author="Park Sangjun",
-    packages=find_packages(exclude=["tests"]),
+    packages=find_packages(exclude=["tests", "experiment"]),
 )

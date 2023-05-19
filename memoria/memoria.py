@@ -47,10 +47,8 @@ class Memoria:
         self.device = torch.device(device) if device else None
         self.ext_device = None
 
-        self.total_segment_lifespan = defaultdict(lambda: 0)
-
     @torch.no_grad()
-    def add_working_memory(self, data: torch.Tensor, segment_index: int) -> None:
+    def add_working_memory(self, data: torch.Tensor, engram_index) -> None:
         """Add new working memories to engrams
 
         Args:
@@ -62,7 +60,7 @@ class Memoria:
             data.to(self.device),
             engrams_types=EngramType.WORKING,
             lifespan=self.initial_lifespan,
-            segment_index=segment_index,
+            engram_index=engram_index,
         )
 
     @torch.no_grad()
@@ -108,11 +106,6 @@ class Memoria:
     @torch.no_grad()
     def adjust_lifespan_and_memories(self, indices: torch.Tensor, lifespan_delta: torch.Tensor):
         """Adjust lifespan and memories"""
-        e = self.engrams.select(indices)
-        seg_idx = e.segment_index.squeeze(dim=0).tolist()
-        for i, d in zip(seg_idx, lifespan_delta.squeeze(dim=0).tolist()):
-            self.total_segment_lifespan[i] += d
-
         lifespan_delta = lifespan_delta.to(self.device)
         self.engrams.extend_lifespan(indices, lifespan_delta)
         self.engrams.decrease_lifespan()

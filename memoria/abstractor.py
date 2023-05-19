@@ -36,8 +36,8 @@ class Abstractor(nn.Module):
         value = self.value_transform(hidden_states)
         # [Batch, NumMemories, HiddenDim] x [Batch, N, HiddenDim] -> [Batch, NumMemories, N]
         attn = query @ key.transpose(-2, -1)
-        attn = attn.softmax(dim=-1)
-        attn = attn @ value
-        attn = self.feedforward(attn)
-        attn = self.output(attn)
-        return attn
+        weight = attn.softmax(dim=-1)
+        score = weight @ value
+        score = self.feedforward(score)
+        score = self.output(score)
+        return score, weight

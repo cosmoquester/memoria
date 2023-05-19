@@ -43,8 +43,8 @@ g.add_argument("--logging-interval", type=int, default=10, help="logging interva
 
 g = parser.add_argument_group("Wandb Options")
 g.add_argument("--wandb-run-name", type=str, help="wanDB run name")
-g.add_argument("--wandb-entity", type=str, default="cosmoquester", help="wanDB entity name")
-g.add_argument("--wandb-project", type=str, default="long-sequence-formers", help="wanDB project name")
+g.add_argument("--wandb-entity", type=str, help="wanDB entity name")
+g.add_argument("--wandb-project", type=str, help="wanDB project name")
 # fmt: on
 
 

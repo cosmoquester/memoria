@@ -5,11 +5,6 @@ from typing import Dict
 
 import pytorch_lightning as pl
 import torch
-from pytorch_lightning.callbacks import LearningRateMonitor
-from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
-from torch.utils.data import DataLoader
-from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
-
 import wandb
 from longseq_formers.data import (
     LANGUAGE_MODELING_DATASETS,
@@ -21,6 +16,10 @@ from longseq_formers.data import (
 from longseq_formers.dataset import LanguageModelingDataset, text_to_tokens
 from longseq_formers.task import LanguageModeling
 from longseq_formers.utils import BatchedDataModule, get_logger
+from pytorch_lightning.callbacks import LearningRateMonitor
+from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
+from torch.utils.data import DataLoader
+from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
 # fmt: off
 parser = argparse.ArgumentParser(prog="train", description="Train & Test Language Modeling")
@@ -51,8 +50,8 @@ g.add_argument("--valid-interval", type=float, default=1.0, help="validation int
 
 g = parser.add_argument_group("Wandb Options")
 g.add_argument("--wandb-run-name", type=str, help="wanDB run name")
-g.add_argument("--wandb-entity", type=str, default="cosmoquester", help="wanDB entity name")
-g.add_argument("--wandb-project", type=str, default="long-sequence-formers", help="wanDB project name")
+g.add_argument("--wandb-entity", type=str, help="wanDB entity name")
+g.add_argument("--wandb-project", type=str, help="wanDB project name")
 # fmt: on
 
 

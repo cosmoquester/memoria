@@ -5,15 +5,14 @@ from typing import Dict
 
 import pytorch_lightning as pl
 import torch
-from pytorch_lightning.callbacks import LearningRateMonitor
-from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
-from torch.utils.data import DataLoader
-from transformers import AutoConfig, AutoModelForCausalLM
-
 import wandb
 from longseq_formers.dataset.synthetic import SyntheticDataset, parse_syntetic_data
 from longseq_formers.task import Synthetic
 from longseq_formers.utils import get_logger
+from pytorch_lightning.callbacks import LearningRateMonitor
+from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
+from torch.utils.data import DataLoader
+from transformers import AutoConfig, AutoModelForCausalLM
 
 # fmt: off
 parser = argparse.ArgumentParser(prog="train_synthetic", description="Train & Test Synthetic Task")
@@ -40,8 +39,8 @@ g.add_argument("--valid-interval", type=float, default=1.0, help="validation int
 
 g = parser.add_argument_group("Wandb Options")
 g.add_argument("--wandb-run-name", type=str, help="wanDB run name")
-g.add_argument("--wandb-entity", type=str, default="cosmoquester", help="wanDB entity name")
-g.add_argument("--wandb-project", type=str, default="long-sequence-formers", help="wanDB project name")
+g.add_argument("--wandb-entity", type=str, help="wanDB entity name")
+g.add_argument("--wandb-project", type=str, help="wanDB project name")
 # fmt: on
 
 

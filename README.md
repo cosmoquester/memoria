@@ -6,3 +6,11 @@
 [![codecov](https://codecov.io/gh/cosmoquester/memoria/branch/master/graph/badge.svg?token=KZdkgkBzZG)](https://codecov.io/gh/cosmoquester/memoria)
 
 Memoria is general memory network which can be used to memorize long sequence information.
+
+```sh
+$ pip install git+ssh://git@github.com/cosmoquester/memoria
+```
+
+You can install memoria by pip command above.
+
+Memoria is independant module and the experiment code of paper is in the `experiment` directory.

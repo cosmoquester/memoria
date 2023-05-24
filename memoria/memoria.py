@@ -16,8 +16,6 @@ class Memoria:
         ltm_search_depth: int,
         initial_lifespan: int,
         num_final_ltms: int,
-        enable_stm: bool = True,
-        enable_ltm: bool = True,
         device: Optional[Union[str, torch.device]] = None,
     ) -> None:
         """
@@ -28,10 +26,8 @@ class Memoria:
             ltm_search_depth: the maximum number of depth for dfs memory search
             initial_lifespan: initial lifespan for each engrams
             num_final_ltms: the number of longterm memories to return
-            enable_stm: whether to use shortterm memory.
                 this module will not return shortterm memory indices, but keep shortterm memory
                 to remind longterm memory. so when `enable ltm` is True.
-            enable_ltm: whether to use longterm memory. this module will keep shortterm and longterm memories.
             device: memoria device to save engrams
         """
         self.engrams = Engrams.empty()
@@ -41,8 +37,6 @@ class Memoria:
         self.ltm_search_depth: int = ltm_search_depth
         self.initial_lifespan: int = initial_lifespan
         self.num_final_ltms: int = num_final_ltms
-        self.enable_stm: bool = enable_stm
-        self.enable_ltm: bool = enable_ltm
         self.device = torch.device(device) if device else None
         self.ext_device = None
 
@@ -80,15 +74,6 @@ class Memoria:
 
         fire_indices = torch.cat([wm_indices, reminded_indices], dim=1)
         self.engrams.fire_together_wire_together(fire_indices)
-
-        if not self.enable_stm and not self.enable_ltm:
-            reminded_indices = torch.zeros(
-                [self.engrams.batch_size, 0], requires_grad=False, device=self.engrams.data.device, dtype=torch.long
-            )
-        elif not self.enable_ltm:
-            reminded_indices = reminded_stm_indices
-        elif not self.enable_stm:
-            reminded_indices = reminded_ltm_indices
 
         reminded_indices = super_unique(reminded_indices, dim=1)
 

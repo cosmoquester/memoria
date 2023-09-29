@@ -18,7 +18,7 @@ class Memoria:
         num_final_ltms: int,
         device: Optional[Union[str, torch.device]] = None,
     ) -> None:
-        """
+        """Initialize Memoria
 
         Args:
             num_reminded_stm: the number of stm reminded
@@ -84,7 +84,15 @@ class Memoria:
 
     @torch.no_grad()
     def adjust_lifespan_and_memories(self, indices: torch.Tensor, lifespan_delta: torch.Tensor):
-        """Adjust lifespan and memories"""
+        """Adjust lifespan and convert working memories into shortterm memories,
+            shortterm memories into longterm memories, and drop memories whose lifespan is zero
+
+        Args:
+            indices: indices to adjust lifespan shaped [BatchSize, RemindedMemoryLength]
+                normally, this is the indices returned from `remind` method
+            lifespan_delta: float tensor shaped [BatchSize, RemindedMemoryLength]
+                the value of lifespan_delta[i][j] is increment of the engram whose index is indices[i][j]
+        """
         lifespan_delta = lifespan_delta.to(self.device)
         self.engrams.extend_lifespan(indices, lifespan_delta)
         self.engrams.decrease_lifespan()

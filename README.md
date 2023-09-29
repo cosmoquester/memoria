@@ -7,9 +7,9 @@
 
 <img src="https://github.com/cosmoquester/memoria/assets/30718444/fa36dd13-7aac-4c4d-b749-83d93993d422" width="55%">
 
-Memoria is general memory network which can be used to memorize long sequence information.
+Memoria is a general memory network that applies Hebbian theory which is a major theory explaining human memory formulation to enhance long-term dependencies in neural networks. Memoria stores and retrieves information called engram at multiple memory levels of working memory, short-term memory, and long-term memory, using connection weights that change according to Hebb's rule.
 
-Memoria is an independant module which can be applied to neural network models and the experiment code of paper is in the `experiment` directory.
+Memoria is an independant module which can be applied to neural network models in various ways and the experiment code of the paper is in the `experiment` directory.
 
 ## Installation
 

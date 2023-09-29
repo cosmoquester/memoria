@@ -12,6 +12,8 @@ from transformers import (
     AutoModelForSequenceClassification,
     BertForSequenceClassification,
     BertModel,
+    ElectraForSequenceClassification,
+    ElectraModel,
 )
 from transformers.modeling_outputs import (
     BaseModelOutputWithPastAndCrossAttentions,
@@ -337,11 +339,17 @@ class MemoriaBertPreTrainedModel(PreTrainedModel):
             return super().from_pretrained(pretrained_model_name_or_path, *model_args, **kwargs)
         elif config.model_type == "bert":
             return cls.from_pretrained_bert(pretrained_model_name_or_path, *model_args, **kwargs)
+        elif config.model_type == "electra":
+            return cls.from_pretrained_electra(pretrained_model_name_or_path, *model_args, **kwargs)
         else:
             raise ValueError("Unsupported model type")
 
     @classmethod
     def from_pretrained_bert(cls, *args, **kwargs):
+        raise NotImplementedError
+
+    @classmethod
+    def from_pretrained_electra(cls, *args, **kwargs):
         raise NotImplementedError
 
 
@@ -522,6 +530,15 @@ class MemoriaBertModel(MemoriaBertPreTrainedModel):
         model.load_state_dict(bert.state_dict(), strict=False)
         return model
 
+    @classmethod
+    def from_pretrained_electra(cls, pretrained_path: str, *args, **kwargs) -> "MemoriaBertModel":
+        electra = ElectraModel.from_pretrained(pretrained_path, *args, **kwargs)
+        config = MemoriaBertConfig(**electra.config.to_dict())
+        config.model_type = MemoriaBertConfig.model_type
+        model = cls(config)
+        model.load_state_dict(electra.state_dict(), strict=False)
+        return model
+
 
 class MemoriaBertForSequenceClassification(MemoriaBertPreTrainedModel):
     def __init__(self, config):
@@ -617,6 +634,15 @@ class MemoriaBertForSequenceClassification(MemoriaBertPreTrainedModel):
         config.model_type = MemoriaBertConfig.model_type
         model = cls(config)
         model.load_state_dict(bert.state_dict(), strict=False)
+        return model
+
+    @classmethod
+    def from_pretrained_electra(cls, pretrained_path: str, *args, **kwargs) -> "MemoriaBertForSequenceClassification":
+        electra = ElectraForSequenceClassification.from_pretrained(pretrained_path, *args, **kwargs)
+        config = MemoriaBertConfig(**electra.config.to_dict())
+        config.model_type = MemoriaBertConfig.model_type
+        model = cls(config)
+        model.load_state_dict(electra.state_dict(), strict=False)
         return model
 
 

@@ -53,15 +53,18 @@ class LanguageModeling(pl.LightningModule):
             batch["cmems"] = self._cmems
         outputs = self.model(**batch)
         lm_loss = outputs.loss
-        if self.model.config.model_type in ["transfo-xl", "memoria-xl"]:
-            self._mems = outputs.mems
-        if self.model.config.model_type in ["compressive_transformer", "infinity_gpt2"]:
+
+        if self.model.config.model_type in ["compressive_transformer"]:
             lm_loss = outputs.lm_loss
+        if hasattr(outputs, "mems"):
+            self._mems = outputs.mems
+        if hasattr(outputs, "cmems"):
+            self._cmems = outputs.cmems
 
         loss = outputs.loss
         ppl = lm_loss.detach().exp()
-        metrics = {"loss": loss, "ppl": ppl}
-        if self.model.config.model_type in ["gpt2_with_memoria", "memoria-xl"]:
+        metrics = {"loss": loss, "lm_loss": lm_loss, "ppl": ppl}
+        if self.model.config.model_type in ["gpt2_with_memoria"]:
             ltm_mask = self.model.transformer.memoria.engrams.longterm_memory_mask
             metrics["num_ltms_per_batch"] = ltm_mask.sum(dim=1).float().mean(dim=0) if ltm_mask.numel() > 0 else 0.0
         metrics = {prefix + k: v for k, v in metrics.items()}
@@ -83,21 +86,6 @@ class LanguageModeling(pl.LightningModule):
         """Test step function"""
         metrics = self._step(batch=batch, batch_idx=batch_idx, prefix="test/")
         self.log_dict(metrics, prog_bar=True, logger=True, on_step=True, sync_dist=True)
-
-
-        if (batch_idx+1) % 10 == 0:
-            engrams = self.model.transformer.memoria.engrams
-            induce_counts = engrams.induce_counts.cpu().numpy()
-            memory_index = engrams.engram_index.cpu().numpy()
-
-            data = {
-                "induce_counts": induce_counts.tolist(),
-                "memory_index": memory_index.tolist(),
-            }
-            import json
-            with open(f"memory_infos/memory_info_{batch_idx:03}.json", "w") as f:
-                json.dump(data, f)
-
         return metrics
 
     def configure_optimizers(self) -> Dict:
@@ -114,18 +102,16 @@ class LanguageModeling(pl.LightningModule):
         return optimizers
 
     def reset_memories(self) -> None:
-        if self.model.config.model_type in ["gpt2_with_memoria", "memoria-xl"]:
+        if self.model.config.model_type in ["gpt2_with_memoria"]:
             self.model.transformer.memoria.reset_memory()
             self.model.transformer.prev_hidden = None
-        if self.model.config.model_type in ["transfo-xl", "memoria-xl"] and hasattr(self, "_mems"):
+        if self.model.config.model_type in ["transfo-xl"] and hasattr(self, "_mems"):
             del self._mems
         if self.model.config.model_type == "compressive_transformer":
             if hasattr(self, "_mems"):
                 del self._mems
             if hasattr(self, "_cmems"):
                 del self._cmems
-        if self.model.config.model_type == "infinity_gpt2":
-            self.model.reset_memories()
 
     def on_train_start(self) -> None:
         self.reset_memories()
@@ -142,11 +128,11 @@ class LanguageModeling(pl.LightningModule):
     def on_test_start(self) -> None:
         self.reset_memories()
 
-    # def on_test_end(self) -> None:
-    #     self.reset_memories()
+    def on_test_end(self) -> None:
+        self.reset_memories()
 
     def on_train_batch_start(self, batch: Any, batch_idx: int) -> None:
-        if self.model.config.model_type in ["gpt2_with_memoria", "memoria-xl"]:
+        if self.model.config.model_type in ["gpt2_with_memoria"]:
             if batch_idx % self.model.config.memoria_reset_period == 0:
                 self.model.transformer.memoria.reset_memory()
                 self.model.transformer.prev_hidden = None

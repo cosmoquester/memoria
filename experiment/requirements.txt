@@ -1,6 +1,7 @@
 torch==1.13.1
 pytorch-lightning==1.8.6
 transformers==4.25.1
+mogrifier # for compressive transformer
 
 datasets
 scikit-learn

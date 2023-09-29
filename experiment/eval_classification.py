@@ -1,11 +1,18 @@
 import argparse
+from functools import partial
 from typing import Dict
 
 import pytorch_lightning as pl
 import torch
-from longseq_formers.data import CLASSIFICATION_DATASETS, load_hyperpartisan_data
-from longseq_formers.dataset import ClassificationDataset
-from longseq_formers.task import Classification
+from longseq_formers.data import (
+    CLASSIFICATION_DATASETS,
+    load_20news_data,
+    load_ecthr_data,
+    load_hyperpartisan_data,
+    load_mimic3_data,
+)
+from longseq_formers.dataset import ClassificationDataset, MultiLabelClassificationDataset
+from longseq_formers.task import Classification, MultiLabelClassification
 from longseq_formers.utils import get_logger
 from torch.utils.data import DataLoader
 from transformers import AutoTokenizer
@@ -36,21 +43,38 @@ def main(args: argparse.Namespace) -> Dict[str, float]:
     tokenizer = AutoTokenizer.from_pretrained(args.tokenizer)
 
     logger.info(f'[+] Use Dataset: "{args.dataset}"')
-    if args.dataset == "hyperpartisan":
-        datasets = load_hyperpartisan_data()
+    if args.dataset in ("ecthr", "mimic3"):
+        if args.dataset == "ecthr":
+            datasets, label_to_index = load_ecthr_data()
+        elif args.dataset == "mimic3":
+            datasets, label_to_index = load_mimic3_data()
+        num_labels = len(label_to_index)
+        dataset_cls = partial(
+            MultiLabelClassificationDataset,
+            tokenizer=tokenizer,
+            max_length=args.max_length,
+            num_labels=num_labels,
+            truncation=args.truncation,
+        )
+        task_cls = MultiLabelClassification
+    else:
+        dataset_cls = partial(
+            ClassificationDataset, tokenizer=tokenizer, max_length=args.max_length, truncation=args.truncation
+        )
+        if args.dataset == "hyperpartisan":
+            datasets = load_hyperpartisan_data()
+        if args.dataset == "20news":
+            datasets = load_20news_data()
+        task_cls = Classification
 
-    valid_dataset = ClassificationDataset(
-        datasets["dev"], tokenizer=tokenizer, max_length=args.max_length, truncation=args.truncation
-    )
-    test_dataset = ClassificationDataset(
-        datasets["test"], tokenizer=tokenizer, max_length=args.max_length, truncation=args.truncation
-    )
+    valid_dataset = dataset_cls(datasets["dev"])
+    test_dataset = dataset_cls(datasets["test"])
 
     logger.info(f"[+] # of valid examples: {len(valid_dataset)}")
     logger.info(f"[+] # of test examples: {len(test_dataset)}")
 
     logger.info(f'[+] Load Model: "{args.model}"')
-    classification = Classification.load_from_checkpoint(args.model)
+    classification = task_cls.load_from_checkpoint(args.model)
 
     collate_fn = ClassificationDataset.pad_collate_fn if not args.truncation else None
     valid_dataloader = DataLoader(valid_dataset, batch_size=args.valid_batch_size, collate_fn=collate_fn)

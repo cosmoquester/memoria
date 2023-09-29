@@ -1,0 +1,23 @@
+{
+  "model_type": "compressive_transformer",
+  "attn_dropout": 0.1,
+  "attn_layer_dropout": 0.1,
+  "cmem_len": 512,
+  "cmem_ratio": 4,
+  "depth": 4,
+  "dim": 512,
+  "emb_dim": null,
+  "enhanced_recurrence": true,
+  "ff_dropout": 0.1,
+  "ff_glu": false,
+  "gru_gated_residual": false,
+  "heads": 4,
+  "mem_len": 512,
+  "memory_layers": null,
+  "mogrify_gru": false,
+  "num_tokens": 21,
+  "reconstruction_attn_dropout": 0.0,
+  "reconstruction_loss_weight": 1.0,
+  "seq_len": 1024,
+  "transformers_version": "4.25.1"
+}

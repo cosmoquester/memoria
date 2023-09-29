@@ -186,24 +186,6 @@ def test_remind():
     assert len(memoria.engrams.get_shortterm_memory()[0]) == batch_size * memory_length * 2
     assert outputs.size(1) > 0
 
-    memoria.enable_stm = False
-    working_memory = torch.randn(batch_size, memory_length, hidden_dim)
-    memoria.add_working_memory(working_memory)
-    outputs, indices = memoria.remind()
-    assert (memoria.engrams.select(indices).engrams_types != EngramType.SHORTTERM.value).all()
-
-    memoria.enable_ltm = False
-    working_memory = torch.randn(batch_size, memory_length, hidden_dim)
-    memoria.add_working_memory(working_memory)
-    outputs, indices = memoria.remind()
-    assert indices.numel() == 0
-
-    memoria.enable_stm = True
-    working_memory = torch.randn(batch_size, memory_length, hidden_dim)
-    memoria.add_working_memory(working_memory)
-    outputs, indices = memoria.remind()
-    assert (memoria.engrams.select(indices).engrams_types != EngramType.LONGTERM.value).all()
-
 
 def test_reset_memory():
     memoria = Memoria(

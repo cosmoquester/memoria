@@ -5,6 +5,9 @@
 [![CircleCI](https://dl.circleci.com/status-badge/img/gh/cosmoquester/memoria/tree/master.svg?style=svg&circle-token=513f0f5e9a706a51509d198359fe0e016a227ce9)](https://dl.circleci.com/status-badge/redirect/gh/cosmoquester/memoria/tree/master)
 [![codecov](https://codecov.io/gh/cosmoquester/memoria/branch/master/graph/badge.svg?token=KZdkgkBzZG)](https://codecov.io/gh/cosmoquester/memoria)
 
+![Memoria-Engrams-compressed-1500](https://github.com/cosmoquester/memoria/assets/30718444/fa36dd13-7aac-4c4d-b749-83d93993d422)
+
+
 Memoria is general memory network which can be used to memorize long sequence information.
 
 Memoria is an independant module which can be applied to neural network models and the experiment code of paper is in the `experiment` directory.

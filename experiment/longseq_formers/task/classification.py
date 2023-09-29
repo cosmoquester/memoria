@@ -1,5 +1,4 @@
-from dataclasses import dataclass
-from typing import Any, Dict, Literal, Optional, Tuple
+from typing import Any, Dict, Literal, Optional
 
 import pytorch_lightning as pl
 import torch
@@ -7,16 +6,6 @@ import torch.nn.functional as F
 from torchmetrics.classification import Accuracy, MulticlassF1Score
 from torchmetrics.collections import MetricCollection
 from transformers import AutoConfig, AutoModelForSequenceClassification, get_linear_schedule_with_warmup
-from transformers.utils import ModelOutput
-
-
-@dataclass
-class SequenceClassifierOutputWithKLLoss(ModelOutput):
-    loss: Optional[torch.FloatTensor] = None
-    kl_regularization_loss: Optional[torch.FloatTensor] = None
-    logits: torch.FloatTensor = None
-    hidden_states: Optional[Tuple[torch.FloatTensor]] = None
-    attentions: Optional[Tuple[torch.FloatTensor]] = None
 
 
 class Classification(pl.LightningModule):
@@ -91,48 +80,100 @@ class Classification(pl.LightningModule):
         outputs = self.model(**batch)
         logits = outputs.logits
 
-        ce_loss = F.cross_entropy(logits, labels)
+        ce_loss = F.cross_entropy(logits, labels, reduction="none")
         loss = ce_loss
-        other_metrics = {"ce_loss": ce_loss}
-        if isinstance(outputs, SequenceClassifierOutputWithKLLoss) and outputs.kl_regularization_loss is not None:
-            kl_loss = outputs.kl_regularization_loss.mean(dim=0)
-            other_metrics["kl_loss"] = kl_loss
-            loss += kl_loss
+        other_metrics = {"ce_loss": ce_loss.mean()}
         if self.model.config.model_type == "memoria_bert":
             ltm_mask = self.model.bert.encoder.memoria.engrams.longterm_memory_mask
             other_metrics["num_ltms_per_batch"] = (
-                ltm_mask.sum(dim=1).float().mean(dim=0) if ltm_mask.numel() > 0 else 0.0
+                ltm_mask.sum(dim=1).float().mean(dim=0)
+                if ltm_mask.numel() > 0
+                else torch.tensor(0.0, device=loss.device)
+            )
+        if self.model.config.model_type == "memoria_roberta":
+            ltm_mask = self.model.roberta.encoder.memoria.engrams.longterm_memory_mask
+            other_metrics["num_ltms_per_batch"] = (
+                ltm_mask.sum(dim=1).float().mean(dim=0)
+                if ltm_mask.numel() > 0
+                else torch.tensor(0.0, device=loss.device)
             )
         other_metrics["loss"] = loss
 
-        metrics = self.metrics[prefix](logits, labels)
-        self.metrics[prefix].update(logits, labels)
-        metrics.update(**{prefix + k: v for k, v in other_metrics.items()})
-        return metrics
+        other_metrics = {prefix + k: v for k, v in other_metrics.items()}
+        return other_metrics, logits.detach(), labels.detach()
 
     def _segment_step(
         self,
         batch: Dict[str, torch.Tensor],
         batch_idx: int,
+        aggregate: Literal["mean", "last"],
         prefix="",
-        aggregate: Literal["mean", "last"] = "mean",
     ) -> Dict[str, float]:
-        length = batch["input_ids"].shape[1]
-        metrics = []
+        batch_size, length = batch["input_ids"].shape
+        num_valid_segments = batch["attention_mask"][:, :: self.segment_size].sum(dim=1)
+        all_metrics = []
+        all_probs = []
         indices = list(range(0, length, self.segment_size))
-        for i in indices:
+        prev_indices = [None] + indices[:-1]
+        post_indices = indices[1:] + [None]
+        final_loss = 0.0
+        for pre_i, i, post_i in zip(prev_indices, indices, post_indices):
             segment_batch = {k: v[:, i : i + self.segment_size] if k != "labels" else v for k, v in batch.items()}
-            segment_metrics = self._single_step(segment_batch, batch_idx, prefix)
-            if "train/loss" in segment_metrics:
-                self.manual_backward(segment_metrics["train/loss"] / len(indices))
-            metrics.append(segment_metrics)
+            pre_batch = (
+                {k: v[:, pre_i : pre_i + self.segment_size] if k != "labels" else v for k, v in batch.items()}
+                if pre_i is not None
+                else None
+            )
+            post_batch = (
+                {k: v[:, post_i : post_i + self.segment_size] if k != "labels" else v for k, v in batch.items()}
+                if post_i is not None
+                else None
+            )
+
+            current_valid = segment_batch["attention_mask"].bool().any(dim=1)
+            is_last = current_valid
+            if pre_batch is not None:
+                pre_valid = pre_batch["attention_mask"].bool().any(dim=1)
+                is_last &= pre_valid
+            if post_batch is not None:
+                post_valid = post_batch["attention_mask"].bool().any(dim=1)
+                is_last &= ~post_valid
+
+            segment_metrics, logits, labels = self._single_step(segment_batch, batch_idx, prefix)
+            if aggregate == "last":
+                loss = segment_metrics[f"{prefix}loss"] / batch_size
+                loss = loss[is_last].sum()
+                final_loss += loss.item()
+
+                if logits[is_last].numel():
+                    self.metrics[prefix].update(logits[is_last], labels[is_last])
+                segment_metrics[f"{prefix}loss"] = loss
+            elif aggregate == "mean":
+                loss = segment_metrics[f"{prefix}loss"].mean() / len(indices)
+                final_loss += loss.item()
+
+                probs = logits.softmax(dim=-1)
+                probs[~current_valid] = 0.0
+                all_probs.append(probs)
+
+                segment_metrics[f"{prefix}loss"] = loss
+            else:
+                raise ValueError(f"Unknown aggregate method: {aggregate}")
+
+            if prefix == "train/":
+                self.manual_backward(loss)
+
+            all_metrics.append(segment_metrics)
         if aggregate == "mean":
-            metrics = {k: torch.stack([m[k] for m in metrics], dim=0).mean(dim=0) for k in metrics[0].keys()}
-        elif aggregate == "last":
-            metrics = metrics[-1]
-        else:
-            raise ValueError(f"Unknown aggregate method: {aggregate}")
-        return metrics
+            all_metrics = {
+                k: torch.stack([m[k] for m in all_metrics], dim=0).mean(dim=0) for k in all_metrics[0].keys()
+            }
+            mean_logits = torch.stack(all_probs, dim=-1).mean(dim=-1)
+            self.metrics[prefix].update(mean_logits, labels)
+            segment_metrics = all_metrics
+
+        segment_metrics.update(self.metrics[prefix].compute())
+        return segment_metrics
 
     def training_step(self, batch: Dict[str, torch.Tensor], batch_idx: int) -> Dict[str, float]:
         """Train step function"""
@@ -143,8 +184,9 @@ class Classification(pl.LightningModule):
         if self.segment_size:
             metrics = self._segment_step(batch=batch, batch_idx=batch_idx, aggregate=self.aggregate, prefix="train/")
         else:
-            metrics = self._single_step(batch=batch, batch_idx=batch_idx, prefix="train/")
+            metrics, logits, labels = self._single_step(batch=batch, batch_idx=batch_idx, prefix="train/")
             self.manual_backward(metrics["train/loss"])
+            metrics.update(self.metrics["train/"](logits, labels))
 
         opt.step()
         if sch is not None:
@@ -156,9 +198,10 @@ class Classification(pl.LightningModule):
     def validation_step(self, batch: Dict[str, torch.Tensor], batch_idx: int) -> Dict[str, float]:
         """Validation step function"""
         if self.segment_size:
-            metrics = self._segment_step(batch=batch, batch_idx=batch_idx, prefix="val/", aggregate=self.eval_aggregate)
+            metrics = self._segment_step(batch=batch, batch_idx=batch_idx, aggregate=self.eval_aggregate, prefix="val/")
         else:
-            metrics = self._single_step(batch=batch, batch_idx=batch_idx, prefix="val/")
+            metrics, logits, labels = self._single_step(batch=batch, batch_idx=batch_idx, prefix="val/")
+            metrics.update(self.metrics["val/"](logits, labels))
         self.log_dict(metrics, prog_bar=True, logger=True, on_step=True, sync_dist=True)
         return metrics
 
@@ -166,10 +209,11 @@ class Classification(pl.LightningModule):
         """Test step function"""
         if self.segment_size:
             metrics = self._segment_step(
-                batch=batch, batch_idx=batch_idx, prefix="test/", aggregate=self.eval_aggregate
+                batch=batch, batch_idx=batch_idx, aggregate=self.eval_aggregate, prefix="test/"
             )
         else:
-            metrics = self._single_step(batch=batch, batch_idx=batch_idx, prefix="test/")
+            metrics, logits, labels = self._single_step(batch=batch, batch_idx=batch_idx, prefix="test/")
+            metrics.update(self.metrics["test/"](logits, labels))
         self.log_dict(metrics, prog_bar=True, logger=True, on_step=True, sync_dist=True)
         return metrics
 
@@ -199,25 +243,29 @@ class Classification(pl.LightningModule):
         return super().on_load_checkpoint(checkpoint)
 
     def on_train_batch_start(self, batch: Any, batch_idx: int) -> None:
+        self.metrics["train/"].reset()
         if self.model.config.model_type == "memoria_bert":
             self.model.bert.encoder.memoria.reset_memory()
+        if self.model.config.model_type == "memoria_roberta":
+            self.model.roberta.encoder.memoria.reset_memory()
 
     def on_validation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         if self.model.config.model_type == "memoria_bert":
             self.model.bert.encoder.memoria.reset_memory()
+        if self.model.config.model_type == "memoria_roberta":
+            self.model.roberta.encoder.memoria.reset_memory()
 
     def on_test_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         if self.model.config.model_type == "memoria_bert":
             self.model.bert.encoder.memoria.reset_memory()
+        if self.model.config.model_type == "memoria_roberta":
+            self.model.roberta.encoder.memoria.reset_memory()
 
     def _epoch_end(self, outputs, prefix: str = "") -> None:
         results = self.metrics[prefix].compute()
         results = {k + "_final": v for k, v in results.items()}
         self.metrics[prefix].reset()
         self.log_dict(results, logger=True, sync_dist=True)
-
-    def training_epoch_end(self, outputs) -> None:
-        return self._epoch_end(outputs, prefix="train/")
 
     def validation_epoch_end(self, outputs) -> None:
         return self._epoch_end(outputs, prefix="val/")

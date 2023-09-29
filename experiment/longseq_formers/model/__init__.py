@@ -2,6 +2,7 @@ from .compressive_former import CompressiveFormerConfig, CompressiveFormerLMHead
 from .gpt2_with_memoria import GPT2WithMemoriaConfig, GPT2WithMemoriaLMHeadModel, GPT2WithMemoriaModel
 from .infinity_gpt2 import InfinityGPT2Config, InfinityGPT2LMHeadModel, InfinityGPT2Model
 from .memoria_bert import MemoriaBertConfig, MemoriaBertForSequenceClassification, MemoriaBertModel
+from .memoria_roberta import MemoriaRobertaConfig, MemoriaRobertaForSequenceClassification, MemoriaRobertaModel
 
 __all__ = [
     "CompressiveFormerConfig",
@@ -16,4 +17,7 @@ __all__ = [
     "MemoriaBertConfig",
     "MemoriaBertForSequenceClassification",
     "MemoriaBertModel",
+    "MemoriaRobertaConfig",
+    "MemoriaRobertaForSequenceClassification",
+    "MemoriaRobertaModel",
 ]

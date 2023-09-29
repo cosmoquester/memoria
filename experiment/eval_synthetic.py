@@ -3,11 +3,10 @@ from typing import Dict
 
 import pytorch_lightning as pl
 import torch
-from torch.utils.data import DataLoader
-
 from longseq_formers.dataset.synthetic import SyntheticDataset, parse_syntetic_data
 from longseq_formers.task import Synthetic
 from longseq_formers.utils import get_logger
+from torch.utils.data import DataLoader
 
 # fmt: off
 parser = argparse.ArgumentParser(prog="train_synthetic", description="Train & Test Synthetic Task")

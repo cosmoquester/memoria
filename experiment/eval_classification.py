@@ -39,18 +39,16 @@ def main(args: argparse.Namespace) -> Dict[str, float]:
     if args.dataset == "hyperpartisan":
         datasets = load_hyperpartisan_data()
 
-    valid_dataset = ClassificationDataset(
-        datasets["dev"], tokenizer=tokenizer, max_length=args.max_length, truncation=args.truncation
-    )
-    test_dataset = ClassificationDataset(
-        datasets["test"], tokenizer=tokenizer, max_length=args.max_length, truncation=args.truncation
-    )
+    valid_dataset = ClassificationDataset(datasets["dev"])
+    test_dataset = ClassificationDataset(datasets["test"])
 
     logger.info(f"[+] # of valid examples: {len(valid_dataset)}")
     logger.info(f"[+] # of test examples: {len(test_dataset)}")
 
     logger.info(f'[+] Load Model: "{args.model}"')
-    classification = Classification.load_from_checkpoint(args.model)
+    classification = Classification.load_from_checkpoint(
+        args.model, tokenizer=tokenizer, max_length=args.max_length, truncation=args.truncation
+    )
 
     collate_fn = ClassificationDataset.pad_collate_fn if not args.truncation else None
     valid_dataloader = DataLoader(valid_dataset, batch_size=args.valid_batch_size, collate_fn=collate_fn)

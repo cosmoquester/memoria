@@ -22,7 +22,6 @@ from typing import Optional, Tuple, Union
 import torch
 import torch.nn as nn
 import torch.utils.checkpoint
-from memoria import Abstractor, Memoria
 from torch.nn import CrossEntropyLoss
 from transformers import AutoConfig, AutoModel, AutoModelForCausalLM, GPT2LMHeadModel, GPT2Model
 from transformers.activations import ACT2FN
@@ -31,6 +30,8 @@ from transformers.modeling_outputs import BaseModelOutputWithPastAndCrossAttenti
 from transformers.modeling_utils import Conv1D, PreTrainedModel, find_pruneable_heads_and_indices, prune_conv1d_layer
 from transformers.utils import logging
 from transformers.utils.model_parallel_utils import assert_device_map, get_device_map
+
+from memoria import Abstractor, Memoria
 
 logger = logging.get_logger(__name__)
 
@@ -434,9 +435,6 @@ class GPT2WithMemoriaModel(GPT2WithMemoriaPreTrainedModel):
             if config.memoria_num_memories
             else None
         )
-        self.expansion_map = {}
-        self.segment_map = {}
-        self.segment_index = None
         self.init_weights()
 
         self.prev_hidden = None
@@ -581,20 +579,14 @@ class GPT2WithMemoriaModel(GPT2WithMemoriaPreTrainedModel):
         memory_indices = None
         memory_attention_mask = None
         if self.prev_hidden is not None:
-            working_memory_states, ws = self.abs(self.prev_hidden)
-            memory_index = torch.arange(len(self.expansion_map), len(self.expansion_map)+working_memory_states.size(1))[None]
-
-            for x in memory_index.squeeze().tolist():
-                self.segment_map[x] = self.segment_index
-            for w in ws.squeeze(dim=0).cpu().numpy():
-                self.expansion_map[len(self.expansion_map)] = w
+            working_memory_states = self.abs(self.prev_hidden) if self.abs is not None else self.prev_hidden
             working_memory_batch_size, working_memory_sequence_length, _ = working_memory_states.size()
             working_memory_attention_mask = torch.ones(
                 [working_memory_batch_size, 1, input_shape[1], working_memory_sequence_length], device=device
             )
             working_memory_attention_mask = (1.0 - working_memory_attention_mask) * -10000.0
 
-            self.memoria.add_working_memory(working_memory_states, memory_index.to(device))
+            self.memoria.add_working_memory(working_memory_states)
 
             # Remind with working memory added at previous timestep
             memory_states, memory_indices = self.memoria.remind()

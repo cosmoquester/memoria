@@ -5,7 +5,7 @@ with open("README.md", "r") as f:
 
 setup(
     name="memoria",
-    version="0.0.1",
+    version="1.0.0",
     description="Memoria is a Hebbian memory architecture for neural networks.",
     long_description=long_description,
     python_requires=">=3.7",

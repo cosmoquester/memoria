@@ -14,7 +14,7 @@ Memoria is an independant module which can be applied to neural network models i
 ## Installation
 
 ```sh
-$ pip install git+ssh://git@github.com/cosmoquester/memoria
+$ pip install memoria-pytorch
 ```
 
 You can install memoria by pip command above.

@@ -170,5 +170,6 @@ $ python eval_language_modeling.py --model trained-model/checkpoint/last.ckpt
 Global seed set to 42
 [2023-09-29 21:45:03,237] [+] GPU: 1
 [2023-09-29 21:45:03,237] [+] Load Tokenizer: "gpt2"
+...
 ```
 - You should give save model checkpoint with `--model [MODEL-CHECKPOINT]` option.

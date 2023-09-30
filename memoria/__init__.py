@@ -5,3 +5,4 @@ from .memoria import Memoria
 from .sparse_tensor import SparseTensor
 
 __all__ = ["utils", "Abstractor", "Engrams", "EngramType", "Memoria", "SparseTensor"]
+__version__ = "0.0.1"

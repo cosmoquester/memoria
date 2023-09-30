@@ -7,7 +7,7 @@ def load_pg19_data(train_dataset_percent: int = 7) -> datasets.Dataset:
         split={
             "train": f"train[:{train_dataset_percent}%]",
             "dev": "validation",
-            "test": "test[:1]",
+            "test": "test",
         },
     )
     return dataset

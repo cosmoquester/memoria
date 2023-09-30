@@ -15,7 +15,7 @@ def load_wikitext103_data() -> datasets.Dataset:
         start_idxs = [m.start() - 1 for m in re.finditer(r"\n\s*= [^=]+ =\s*\n", whole_text)]
         all_idxs = [0] + start_idxs + [len(whole_text)]
         segments = [whole_text[all_idxs[i] : all_idxs[i + 1]].strip() for i in range(len(all_idxs) - 1)]
-        return {"text": segments[:1]}
+        return {"text": segments}
 
     dataset = dataset.map(
         _join_segment_text,

@@ -185,6 +185,7 @@ class Classification(pl.LightningModule):
             metrics = self._segment_step(batch=batch, batch_idx=batch_idx, aggregate=self.aggregate, prefix="train/")
         else:
             metrics, logits, labels = self._single_step(batch=batch, batch_idx=batch_idx, prefix="train/")
+            metrics = {k: v.mean() for k, v in metrics.items()}
             self.manual_backward(metrics["train/loss"])
             metrics.update(self.metrics["train/"](logits, labels))
 
@@ -201,6 +202,7 @@ class Classification(pl.LightningModule):
             metrics = self._segment_step(batch=batch, batch_idx=batch_idx, aggregate=self.eval_aggregate, prefix="val/")
         else:
             metrics, logits, labels = self._single_step(batch=batch, batch_idx=batch_idx, prefix="val/")
+            metrics = {k: v.mean() for k, v in metrics.items()}
             metrics.update(self.metrics["val/"](logits, labels))
         self.log_dict(metrics, prog_bar=True, logger=True, on_step=True, sync_dist=True)
         return metrics
@@ -213,6 +215,7 @@ class Classification(pl.LightningModule):
             )
         else:
             metrics, logits, labels = self._single_step(batch=batch, batch_idx=batch_idx, prefix="test/")
+            metrics = {k: v.mean() for k, v in metrics.items()}
             metrics.update(self.metrics["test/"](logits, labels))
         self.log_dict(metrics, prog_bar=True, logger=True, on_step=True, sync_dist=True)
         return metrics

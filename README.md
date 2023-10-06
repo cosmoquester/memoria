@@ -12,6 +12,8 @@ Memoria is a general memory network that applies Hebbian theory which is a major
 
 Memoria is an independant module which can be applied to neural network models in various ways and the experiment code of the paper is in the `experiment` directory.
 
+Please refer to [Memoria: Hebbian Memory Architecture for Human-Like Sequential Processing](https://arxiv.org/abs/2310.03052) for more details about Memoria.
+
 ## Installation
 
 ```sh
@@ -197,4 +199,17 @@ tensor([[ 9.,  1.,  8.,  2., 16.,  5., 13.,  7.,  7.,  3.,  3.,  4.,  3.,  3.,
         [-1., -1.,  3.,  2., 19., 21., 11.,  6., 14.,  1.,  5.,  1.,  5.,  1.,
           5.,  1.,  1.,  8.,  2.,  1.,  1.,  1.,  2.,  1.,  1.,  1.,  1.,  1.,
           2.,  2.,  2.,  2.,  2.,  2.,  2.,  2.]])
+```
+
+# Citation
+
+```
+@misc{park2023memoria,
+  title         = {Memoria: Hebbian Memory Architecture for Human-Like Sequential Processing},
+  author        = {Sangjun Park and JinYeong Bak},
+  year          = {2023},
+  eprint        = {2310.03052},
+  archiveprefix = {arXiv},
+  primaryclass  = {cs.LG}
+}
 ```

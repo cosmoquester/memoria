@@ -22,4 +22,4 @@ venv.bak/
 # build byproducts
 build/
 dist/
-quick_slack.egg-info/
+memoria_pytorch.egg-info/

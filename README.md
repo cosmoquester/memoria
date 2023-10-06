@@ -6,7 +6,7 @@
 [![CircleCI](https://dl.circleci.com/status-badge/img/gh/cosmoquester/memoria/tree/master.svg?style=svg&circle-token=513f0f5e9a706a51509d198359fe0e016a227ce9)](https://dl.circleci.com/status-badge/redirect/gh/cosmoquester/memoria/tree/master)
 [![codecov](https://codecov.io/gh/cosmoquester/memoria/branch/master/graph/badge.svg?token=KZdkgkBzZG)](https://codecov.io/gh/cosmoquester/memoria)
 
-<img src="https://github.com/cosmoquester/memoria/assets/30718444/fa36dd13-7aac-4c4d-b749-83d93993d422" width="55%">
+<img src="./images/Memoria-Engrams.gif" width="55%">
 
 Memoria is a general memory network that applies Hebbian theory which is a major theory explaining human memory formulation to enhance long-term dependencies in neural networks. Memoria stores and retrieves information called engram at multiple memory levels of working memory, short-term memory, and long-term memory, using connection weights that change according to Hebb's rule.
 

@@ -203,7 +203,7 @@ tensor([[ 9.,  1.,  8.,  2., 16.,  5., 13.,  7.,  7.,  3.,  3.,  4.,  3.,  3.,
 
 # Citation
 
-```
+```bibtex
 @misc{park2023memoria,
   title         = {Memoria: Hebbian Memory Architecture for Human-Like Sequential Processing},
   author        = {Sangjun Park and JinYeong Bak},

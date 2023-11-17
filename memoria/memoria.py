@@ -38,6 +38,7 @@ class Memoria:
         self.initial_lifespan: int = initial_lifespan
         self.num_final_ltms: int = num_final_ltms
         self.device = torch.device(device) if device else None
+        self.engram_index_start = 0
         self.ext_device = None
 
     @torch.no_grad()
@@ -49,7 +50,16 @@ class Memoria:
         """
         self.ext_device = data.device
         self.device = self.device or data.device
-        self.engrams += Engrams(data.to(self.device), engrams_types=EngramType.WORKING, lifespan=self.initial_lifespan)
+        engram_index = torch.arange(
+            self.engram_index_start, self.engram_index_start + data.size(1), device=data.device, requires_grad=False
+        ).unsqueeze(0).repeat(data.size(0), 1)
+        self.engrams += Engrams(
+            data.to(self.device),
+            engrams_types=EngramType.WORKING,
+            lifespan=self.initial_lifespan,
+            engram_index=engram_index,
+        )
+        self.engram_index_start += data.size(1)
 
     @torch.no_grad()
     def remind(self) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -93,6 +103,11 @@ class Memoria:
             lifespan_delta: float tensor shaped [BatchSize, RemindedMemoryLength]
                 the value of lifespan_delta[i][j] is increment of the engram whose index is indices[i][j]
         """
+        # e = self.engrams.select(indices)
+        # seg_idx = e.segment_index.squeeze(dim=0).tolist()
+        # for i, d in zip(seg_idx, lifespan_delta.squeeze(dim=0).tolist()):
+        #     self.total_segment_lifespan[i] += d
+
         lifespan_delta = lifespan_delta.to(self.device)
         self.engrams.extend_lifespan(indices, lifespan_delta)
         self.engrams.decrease_lifespan()

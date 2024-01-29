@@ -96,6 +96,7 @@ class Memoria:
         lifespan_delta = lifespan_delta.to(self.device)
         self.engrams.extend_lifespan(indices, lifespan_delta)
         self.engrams.decrease_lifespan()
+        self.engrams.increase_age()
 
         self._memorize_working_memory_as_shortterm_memory()
         self._memorize_shortterm_memory_as_longterm_memory()

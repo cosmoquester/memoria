@@ -21,6 +21,7 @@ class Engrams:
         induce_counts: induce count of each engram about each engram shaped [BatchSize, MemoryLength, MemoryLength]
         engrams_types: engram types of each engram shaped [BatchSize, MemoryLength]
         lifespan: lifespan of each engram shaped [BatchSize, MemoryLength]
+        age: age of each engram shaped [BatchSize, MemoryLength]
     """
 
     @torch.no_grad()
@@ -30,6 +31,7 @@ class Engrams:
         induce_counts: Optional[torch.Tensor] = None,
         engrams_types: Optional[Union[torch.Tensor, EngramType]] = None,
         lifespan: Union[torch.Tensor, int] = 0,
+        age: Optional[Union[torch.Tensor, int]] = None,
     ) -> None:
         self.batch_size, self.memory_length, self.hidden_dim = data.shape
         self.data: torch.Tensor = data.detach().float()
@@ -66,6 +68,16 @@ class Engrams:
             if not isinstance(lifespan, torch.Tensor)
             else lifespan.detach().type(torch.float32)
         )
+        self.age = (
+            torch.zeros(
+                [self.batch_size, self.memory_length],
+                dtype=torch.int32,
+                requires_grad=False,
+                device=data.device,
+            )
+            if not isinstance(age, torch.Tensor)
+            else age.detach().type(torch.int32)
+        )
 
     @classmethod
     def empty(cls) -> "Engrams":
@@ -81,6 +93,7 @@ class Engrams:
             and (self.induce_counts == other.induce_counts).all()
             and (self.engrams_types == other.engrams_types).all()
             and (self.lifespan == other.lifespan).all()
+            and (self.age == other.age).all()
         )
 
     @torch.no_grad()
@@ -93,6 +106,7 @@ class Engrams:
         concatenated_data = torch.cat([self.data, other.data], dim=1)
         concatenated_engrams_types = torch.cat([self.engrams_types, other.engrams_types], dim=1)
         concatenated_lifespan = torch.cat([self.lifespan, other.lifespan], dim=1)
+        concatentaed_age = torch.cat([self.age, other.age], dim=1)
 
         new_memory_length = self.memory_length + other.memory_length
         concatenated_induce_counts = torch.zeros(
@@ -105,10 +119,11 @@ class Engrams:
         concatenated_induce_counts[:, self.memory_length :, self.memory_length :] = other.induce_counts
 
         return Engrams(
-            concatenated_data,
-            concatenated_induce_counts,
-            concatenated_engrams_types,
-            concatenated_lifespan,
+            data=concatenated_data,
+            induce_counts=concatenated_induce_counts,
+            engrams_types=concatenated_engrams_types,
+            lifespan=concatenated_lifespan,
+            age=concatentaed_age,
         )
 
     @property
@@ -300,6 +315,7 @@ class Engrams:
             selected_induce_counts = self.induce_counts[:, indices][:, :, indices]
             selected_engrams_types = self.engrams_types[:, indices]
             selected_lifespan = self.lifespan[:, indices]
+            selected_age = self.age[:, indices]
         elif len(indices.shape) == 2:
             index_0 = torch.arange(self.batch_size, device=self.induce_counts.device, requires_grad=False)
             selected_data = self.data[index_0.unsqueeze(1), indices]
@@ -308,6 +324,7 @@ class Engrams:
             ]
             selected_engrams_types = self.engrams_types[index_0.unsqueeze(1), indices]
             selected_lifespan = self.lifespan[index_0.unsqueeze(1), indices]
+            selected_age = self.age[index_0.unsqueeze(1), indices]
 
             null_indices_mask = indices < 0
             reverse_mask = (~null_indices_mask).float()
@@ -315,9 +332,16 @@ class Engrams:
             selected_induce_counts.masked_fill_(~(reverse_mask.unsqueeze(2) @ reverse_mask.unsqueeze(1)).bool(), -1)
             selected_engrams_types.masked_fill_(null_indices_mask, EngramType.NULL.value)
             selected_lifespan.masked_fill_(null_indices_mask, -1.0)
+            selected_age.masked_fill_(null_indices_mask, -1)
         else:
             raise ValueError("indices must be 1d or 2d tensor")
-        return Engrams(selected_data, selected_induce_counts, selected_engrams_types, selected_lifespan)
+        return Engrams(
+            data=selected_data,
+            induce_counts=selected_induce_counts,
+            engrams_types=selected_engrams_types,
+            lifespan=selected_lifespan,
+            age=selected_age,
+        )
 
     @torch.no_grad()
     def delete(self, indices: torch.Tensor) -> None:
@@ -336,6 +360,7 @@ class Engrams:
         self.induce_counts = selected.induce_counts
         self.engrams_types = selected.engrams_types
         self.lifespan = selected.lifespan
+        self.age = selected.age
 
     @torch.no_grad()
     def extend_lifespan(self, indices: torch.Tensor, lifespan_delta: torch.Tensor):
@@ -357,3 +382,7 @@ class Engrams:
     @torch.no_grad()
     def decrease_lifespan(self) -> None:
         self.lifespan -= 1.0
+
+    @torch.no_grad()
+    def increase_age(self) -> None:
+        self.age += 1

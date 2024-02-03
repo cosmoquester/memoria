@@ -39,9 +39,9 @@ jobs:
           name: Run Tests and Coverage
           command: |
             source env/bin/activate
-            pytest --cov .
+            pytest --cov --cov-branch --cov-report=xml
 
-      - run: ls .coverage
+      - run: ls -al .coverage
 
       - codecov/upload
 

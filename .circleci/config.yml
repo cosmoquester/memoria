@@ -41,6 +41,8 @@ jobs:
             source env/bin/activate
             pytest --cov .
 
+      - run: ls .coverage
+
       - codecov/upload
 
   check-linting:

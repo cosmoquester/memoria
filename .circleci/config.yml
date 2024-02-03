@@ -1,5 +1,8 @@
 version: 2.1
 
+orbs:
+  codecov: codecov/codecov@4.0.1
+
 executors:
   python-executor:
     working_directory: ~/memoria
@@ -37,9 +40,8 @@ jobs:
           command: |
             source env/bin/activate
             pytest --cov-branch --cov memoria
-            curl -Os https://uploader.codecov.io/latest/linux/codecov
-            chmod +x codecov
-            ./codecov
+
+      - codecov/upload
 
   check-linting:
     executor: python-executor

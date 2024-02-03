@@ -33,14 +33,10 @@ jobs:
       - install-packages
 
       - run:
-          name: Run Tests
+          name: Run Tests and Coverage
           command: |
             source env/bin/activate
             pytest --cov-branch --cov memoria
-
-      - run:
-          name: Upload coverage report
-          command: |
             curl -Os https://uploader.codecov.io/latest/linux/codecov
             chmod +x codecov
             ./codecov

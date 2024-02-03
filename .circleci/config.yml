@@ -39,7 +39,7 @@ jobs:
           name: Run Tests and Coverage
           command: |
             source env/bin/activate
-            pytest --cov-branch --cov memoria
+            pytest --cov .
 
       - codecov/upload
 

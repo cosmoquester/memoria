@@ -7,6 +7,7 @@ def load_wikitext103_data() -> datasets.Dataset:
     dataset = datasets.load_dataset(
         "wikitext",
         "wikitext-103-raw-v1",
+        revision="dfd72879b14bf51e8f831b4b092c4f58f356a70f",
         split={"train": f"train", "dev": "validation", "test": "test"},
     )
 

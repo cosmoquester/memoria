@@ -1,6 +1,7 @@
 """
 Refered https://github.com/salesforce/awd-lstm-lm/blob/master/data/enwik8/prep_enwik8.py
 """
+
 from typing import Dict
 
 from datasets import Dataset, DatasetDict, load_dataset
@@ -19,7 +20,7 @@ def enwik8_tokenize(text: str) -> Dict:
 
 
 def load_enwik8_data() -> Dataset:
-    dataset = load_dataset("enwik8", "enwik8-raw")["train"]
+    dataset = load_dataset("enwik8", "enwik8-raw", revision="a3d620ecedec0d39511d1dfdc3a27a69e648be84")["train"]
 
     num_test_chars = 5000000
 

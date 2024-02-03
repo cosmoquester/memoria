@@ -31,7 +31,9 @@ def load_hyperpartisan_data() -> Dict[str, List[ClassificationDatum]]:
             "test": ...
         }
     """
-    data = datasets.load_dataset("hyperpartisan_news_detection", "byarticle")["train"]
+    data = datasets.load_dataset(
+        "hyperpartisan_news_detection", "byarticle", revision="c315cc4a12a27cde08fd55c0beda41ced8b75923"
+    )["train"]
 
     split_datasets = defaultdict(list)
     for split, indices in HYPERPARTISAN_SPLITS.items():

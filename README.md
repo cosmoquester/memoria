@@ -8,11 +8,12 @@
 
 <img src="./images/Memoria-Engrams.gif" width="55%">
 
-Memoria is a general memory network that applies Hebbian theory which is a major theory explaining human memory formulation to enhance long-term dependencies in neural networks. Memoria stores and retrieves information called engram at multiple memory levels of working memory, short-term memory, and long-term memory, using connection weights that change according to Hebb's rule.
+Transformer-based models still face the structural limitation of fixed context length in processing long sequence input despite their effectiveness in various fields. While various external memory techniques were introduced, most previous techniques fail to avoid fateful forgetting, where even the most important memories are inevitably forgotten after a sufficient number of time steps. Memoria is a memory system for artificial neural networks, drawing inspiration from humans and applying various neuroscientific and psychological theories related to memory.
 
 Memoria is an independant module which can be applied to neural network models in various ways and the experiment code of the paper is in the `experiment` directory.
 
-Please refer to [Memoria: Hebbian Memory Architecture for Human-Like Sequential Processing](https://arxiv.org/abs/2310.03052) for more details about Memoria.
+Please refer to [Memoria: Resolving Fateful Forgetting Problem through Human-Inspired Memory Architecture
+](https://arxiv.org/abs/2310.03052) for more details about Memoria.
 
 ## Installation
 
@@ -204,12 +205,12 @@ tensor([[ 9.,  1.,  8.,  2., 16.,  5., 13.,  7.,  7.,  3.,  3.,  4.,  3.,  3.,
 # Citation
 
 ```bibtex
-@misc{park2023memoria,
-  title         = {Memoria: Hebbian Memory Architecture for Human-Like Sequential Processing},
-  author        = {Sangjun Park and JinYeong Bak},
-  year          = {2023},
-  eprint        = {2310.03052},
-  archiveprefix = {arXiv},
-  primaryclass  = {cs.LG}
+@misc{park2024memoria,
+      title={Memoria: Resolving Fateful Forgetting Problem through Human-Inspired Memory Architecture},
+      author={Sangjun Park and JinYeong Bak},
+      year={2024},
+      eprint={2310.03052},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG}
 }
 ```

@@ -66,9 +66,7 @@ class Memoria:
 
         weight = self._calculate_memory_weight(wm_engrams, stm_engrams)
         reminded_stm_indices = self._remind_shortterm_memory(weight, stm_indices)
-        initial_ltm_indices = self._find_initial_longterm_memory(reminded_stm_indices)
-        searched_ltm_indices = self._search_longterm_memories_with_initials(initial_ltm_indices, ltm_engrams)
-        reminded_ltm_indices = self._select_final_ltms(wm_engrams, searched_ltm_indices)
+        reminded_ltm_indices = self._select_final_ltms(wm_engrams, None)
 
         reminded_indices = torch.cat([reminded_stm_indices, reminded_ltm_indices], dim=1)
 
@@ -235,7 +233,7 @@ class Memoria:
             return found_longterm_memory_indices
 
         # [BatchSize, NumFoundLTMs]
-        found_ltms = self.engrams.select(found_longterm_memory_indices)
+        found_ltms = self.engrams.mask_select(self.engrams.longterm_memory_mask)
         # [BatchSize, NumFoundLTMs]
         weight = self._calculate_memory_weight(working_memory, found_ltms).sum(dim=1)
 

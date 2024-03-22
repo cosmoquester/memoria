@@ -73,7 +73,7 @@ class Memoria:
         reminded_indices = torch.cat([reminded_stm_indices, reminded_ltm_indices], dim=1)
 
         fire_indices = torch.cat([wm_indices, reminded_indices], dim=1)
-        self.engrams.fire_together_wire_together(fire_indices)
+        self.engrams.wire_randomly(fire_indices)
 
         reminded_indices = super_unique(reminded_indices, dim=1)
 

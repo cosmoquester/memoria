@@ -273,6 +273,19 @@ class Engrams:
         self.induce_counts += (mask.float().unsqueeze(2) @ mask.float().unsqueeze(1)).int()
 
     @torch.no_grad()
+    def wire_randomly(self, indices: torch.Tensor) -> None:
+        """Wire random engrams
+
+        Args:
+            indices: global indices of firing engrams shaped [BatchSize, NumIndices]
+                -1 means ignore, multiple same indices considered once.
+        """
+        random_j_indices = torch.randint_like(indices, 0, self.data.size(1))
+        mask = self.get_mask_with_indices(indices)
+        random_mask = self.get_mask_with_indices(random_j_indices)
+        self.induce_counts += (mask.float().unsqueeze(2) @ random_mask.float().unsqueeze(1)).int()
+
+    @torch.no_grad()
     def mask_select(self, mask: torch.Tensor) -> "Engrams":
         """Select values with mask
 

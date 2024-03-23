@@ -280,8 +280,8 @@ class Engrams:
             indices: global indices of firing engrams shaped [BatchSize, NumIndices]
                 -1 means ignore, multiple same indices considered once.
         """
-        mask = self.get_mask_with_indices(indices)
-        batch_size, memory_length = mask.shape
+        mask = self.get_mask_with_indices(indices).unsqueeze(1)
+        batch_size, _, memory_length = mask.shape
         random_mask = torch.rand(
             [batch_size, memory_length, memory_length],
             requires_grad=False,

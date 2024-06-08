@@ -8,12 +8,13 @@
 
 <img src="./images/Memoria-Engrams.gif" width="55%">
 
-Transformer-based models still face the structural limitation of fixed context length in processing long sequence input despite their effectiveness in various fields. While various external memory techniques were introduced, most previous techniques fail to avoid fateful forgetting, where even the most important memories are inevitably forgotten after a sufficient number of time steps. Memoria is a memory system for artificial neural networks, drawing inspiration from humans and applying various neuroscientific and psychological theories related to memory.
+Making neural networks remember over the long term has been a longstanding issue. Although several external memory techniques have been introduced, most focus on retaining recent information in the short term. Regardless of its importance, information tends to be fatefully forgotten over time. We present Memoria, a memory system for artificial neural networks, drawing inspiration from humans and applying various neuroscientific and psychological theories. The experimental results prove the effectiveness of Memoria in the diverse tasks of sorting, language modeling, and classification, surpassing conventional techniques. Engram analysis reveals that Memoria exhibits the primacy, recency, and temporal contiguity effects which are characteristics of human memory.
 
 Memoria is an independant module which can be applied to neural network models in various ways and the experiment code of the paper is in the `experiment` directory.
 
-Please refer to [Memoria: Resolving Fateful Forgetting Problem through Human-Inspired Memory Architecture
-](https://arxiv.org/abs/2310.03052) for more details about Memoria.
+My paper [Memoria: Resolving Fateful Forgetting Problem through Human-Inspired Memory Architecture
+](https://icml.cc/virtual/2024/poster/32668) is accepted to **International Conference on Machine Learning (ICML) 2024 as a Spotlight paper**.
+The full text of the paper can be accessed from [OpenReview](https://openreview.net/forum?id=yTz0u4B8ug) or [ArXiv](https://arxiv.org/abs/2310.03052).
 
 ## Installation
 

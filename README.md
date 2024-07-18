@@ -12,8 +12,7 @@ Making neural networks remember over the long term has been a longstanding issue
 
 Memoria is an independant module which can be applied to neural network models in various ways and the experiment code of the paper is in the `experiment` directory.
 
-My paper [Memoria: Resolving Fateful Forgetting Problem through Human-Inspired Memory Architecture
-](https://icml.cc/virtual/2024/poster/32668) is accepted to **International Conference on Machine Learning (ICML) 2024 as a Spotlight paper**.
+My paper [Memoria: Resolving Fateful Forgetting Problem through Human-Inspired Memory Architecture](https://icml.cc/virtual/2024/poster/32668) is accepted to **International Conference on Machine Learning (ICML) 2024 as a Spotlight paper**.
 The full text of the paper can be accessed from [OpenReview](https://openreview.net/forum?id=yTz0u4B8ug) or [ArXiv](https://arxiv.org/abs/2310.03052).
 
 ## Installation
@@ -206,12 +205,19 @@ tensor([[ 9.,  1.,  8.,  2., 16.,  5., 13.,  7.,  7.,  3.,  3.,  4.,  3.,  3.,
 # Citation
 
 ```bibtex
-@misc{park2024memoria,
-      title={Memoria: Resolving Fateful Forgetting Problem through Human-Inspired Memory Architecture},
-      author={Sangjun Park and JinYeong Bak},
-      year={2024},
-      eprint={2310.03052},
-      archivePrefix={arXiv},
-      primaryClass={cs.LG}
+@InProceedings{pmlr-v235-park24a,
+  title = 	 {Memoria: Resolving Fateful Forgetting Problem through Human-Inspired Memory Architecture},
+  author =       {Park, Sangjun and Bak, Jinyeong},
+  booktitle = 	 {Proceedings of the 41st International Conference on Machine Learning},
+  pages = 	 {39587--39615},
+  year = 	 {2024},
+  editor = 	 {Salakhutdinov, Ruslan and Kolter, Zico and Heller, Katherine and Weller, Adrian and Oliver, Nuria and Scarlett, Jonathan and Berkenkamp, Felix},
+  volume = 	 {235},
+  series = 	 {Proceedings of Machine Learning Research},
+  month = 	 {21--27 Jul},
+  publisher =    {PMLR},
+  pdf = 	 {https://raw.githubusercontent.com/mlresearch/v235/main/assets/park24a/park24a.pdf},
+  url = 	 {https://proceedings.mlr.press/v235/park24a.html},
+  abstract = 	 {Making neural networks remember over the long term has been a longstanding issue. Although several external memory techniques have been introduced, most focus on retaining recent information in the short term. Regardless of its importance, information tends to be fatefully forgotten over time. We present Memoria, a memory system for artificial neural networks, drawing inspiration from humans and applying various neuroscientific and psychological theories. The experimental results prove the effectiveness of Memoria in the diverse tasks of sorting, language modeling, and classification, surpassing conventional techniques. Engram analysis reveals that Memoria exhibits the primacy, recency, and temporal contiguity effects which are characteristics of human memory.}
 }
 ```

@@ -424,3 +424,59 @@ def test_lifespan():
             ]
         )
     ).all()
+
+
+def test_status_summary():
+    data = torch.tensor(
+        [
+            [[1.0], [2.0], [3.0], [4.0], [5.0]],
+        ]
+    )
+    NULL = EngramType.NULL.value
+    WORKING = EngramType.WORKING.value
+    SHORTTERM = EngramType.SHORTTERM.value
+    LONGTERM = EngramType.LONGTERM.value
+    engrams_types = torch.tensor(
+        [
+            [WORKING, WORKING, LONGTERM, NULL, SHORTTERM],
+        ]
+    )
+    lifespan = torch.tensor([[1.0, 2.0, 3.0, 4.0, 5.0]])
+    age = torch.tensor([[0, 1, 2, 3, 4]])
+    ids = torch.tensor([[0, 1, 2, 3, 4]])
+    induce_counts = torch.tensor(
+        [
+            [5, 1, 1, 3, 1],
+            [1, 4, 1, 0, 4],
+            [1, 0, 3, 0, 3],
+            [2, 2, 1, 2, 1],
+            [1, 2, 3, 0, 7],
+        ],
+    ).unsqueeze(0)
+
+    engrams = Engrams(
+        data=data,
+        engrams_types=engrams_types,
+        induce_counts=induce_counts,
+        lifespan=lifespan,
+        age=age,
+        engram_ids=ids,
+        track_engram_id=True,
+        track_age=True,
+    )
+    info = engrams.status_summary()[0]
+
+    assert info.working == [0, 1]
+    assert info.shortterm == [4]
+    assert info.longterm == [2]
+    assert len(info.edges) == 16
+    assert len(info.engrams) == 4
+    assert info.engrams[2].lifespan == 3.0
+    assert info.engrams[0].type == "WORKING"
+    assert info.engrams[1].age == 1
+    assert [edge.weight for edge in info.engrams[4].outgoings] == (torch.tensor([1, 2, 3, 7]) / 7).tolist()
+    assert [edge.weight for edge in info.engrams[1].incoming] == (
+        torch.tensor([1, 4, 0, 2]) / torch.tensor([5, 4, 3, 7])
+    ).tolist()
+    assert info.engrams[4].fire_count == 7
+    print(engrams.status_summary())

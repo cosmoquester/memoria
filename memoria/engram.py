@@ -32,8 +32,11 @@ class Engrams:
         engrams_types: Optional[Union[torch.Tensor, EngramType]] = None,
         lifespan: Union[torch.Tensor, int] = 0,
         age: Optional[Union[torch.Tensor, int]] = None,
+        track_age: bool = False,
     ) -> None:
         self.batch_size, self.memory_length, self.hidden_dim = data.shape
+        self.track_age = track_age
+
         self.data: torch.Tensor = data.detach().float()
         self.induce_counts: torch.Tensor = (
             torch.zeros(
@@ -68,16 +71,20 @@ class Engrams:
             if not isinstance(lifespan, torch.Tensor)
             else lifespan.detach().type(torch.float32)
         )
-        self.age = (
-            torch.zeros(
-                [self.batch_size, self.memory_length],
-                dtype=torch.int32,
-                requires_grad=False,
-                device=data.device,
+
+        if self.track_age:
+            self.age = (
+                torch.zeros(
+                    [self.batch_size, self.memory_length],
+                    dtype=torch.int32,
+                    requires_grad=False,
+                    device=data.device,
+                )
+                if not isinstance(age, torch.Tensor)
+                else age.detach().type(torch.int32)
             )
-            if not isinstance(age, torch.Tensor)
-            else age.detach().type(torch.int32)
-        )
+        else:
+            self.age = None
 
     @classmethod
     def empty(cls) -> "Engrams":
@@ -88,13 +95,17 @@ class Engrams:
 
     @torch.no_grad()
     def __eq__(self, other: "Engrams") -> bool:
-        return (
+        comparison = (
             (self.data == other.data).all()
             and (self.induce_counts == other.induce_counts).all()
             and (self.engrams_types == other.engrams_types).all()
             and (self.lifespan == other.lifespan).all()
-            and (self.age == other.age).all()
+            and self.track_age == other.track_age
         )
+
+        if self.track_age:
+            comparison = comparison and (self.age == other.age).all()
+        return comparison
 
     @torch.no_grad()
     def __add__(self, other: "Engrams") -> "Engrams":
@@ -103,10 +114,11 @@ class Engrams:
         if len(other) == 0:
             return self
 
+        track_age = self.track_age and other.track_age
         concatenated_data = torch.cat([self.data, other.data], dim=1)
         concatenated_engrams_types = torch.cat([self.engrams_types, other.engrams_types], dim=1)
         concatenated_lifespan = torch.cat([self.lifespan, other.lifespan], dim=1)
-        concatentaed_age = torch.cat([self.age, other.age], dim=1)
+        concatentaed_age = torch.cat([self.age, other.age], dim=1) if track_age else None
 
         new_memory_length = self.memory_length + other.memory_length
         concatenated_induce_counts = torch.zeros(
@@ -124,6 +136,7 @@ class Engrams:
             engrams_types=concatenated_engrams_types,
             lifespan=concatenated_lifespan,
             age=concatentaed_age,
+            track_age=track_age,
         )
 
     @property
@@ -315,7 +328,11 @@ class Engrams:
             selected_induce_counts = self.induce_counts[:, indices][:, :, indices]
             selected_engrams_types = self.engrams_types[:, indices]
             selected_lifespan = self.lifespan[:, indices]
-            selected_age = self.age[:, indices]
+
+            if self.track_age:
+                selected_age = self.age[:, indices]
+            else:
+                selected_age = None
         elif len(indices.shape) == 2:
             index_0 = torch.arange(self.batch_size, device=self.induce_counts.device, requires_grad=False)
             selected_data = self.data[index_0.unsqueeze(1), indices]
@@ -324,7 +341,6 @@ class Engrams:
             ]
             selected_engrams_types = self.engrams_types[index_0.unsqueeze(1), indices]
             selected_lifespan = self.lifespan[index_0.unsqueeze(1), indices]
-            selected_age = self.age[index_0.unsqueeze(1), indices]
 
             null_indices_mask = indices < 0
             reverse_mask = (~null_indices_mask).float()
@@ -332,7 +348,12 @@ class Engrams:
             selected_induce_counts.masked_fill_(~(reverse_mask.unsqueeze(2) @ reverse_mask.unsqueeze(1)).bool(), -1)
             selected_engrams_types.masked_fill_(null_indices_mask, EngramType.NULL.value)
             selected_lifespan.masked_fill_(null_indices_mask, -1.0)
-            selected_age.masked_fill_(null_indices_mask, -1)
+
+            if self.track_age:
+                selected_age = self.age[index_0.unsqueeze(1), indices]
+                selected_age.masked_fill_(null_indices_mask, -1)
+            else:
+                selected_age = None
         else:
             raise ValueError("indices must be 1d or 2d tensor")
         return Engrams(
@@ -341,6 +362,7 @@ class Engrams:
             engrams_types=selected_engrams_types,
             lifespan=selected_lifespan,
             age=selected_age,
+            track_age=self.track_age,
         )
 
     @torch.no_grad()
@@ -385,4 +407,5 @@ class Engrams:
 
     @torch.no_grad()
     def increase_age(self) -> None:
-        self.age += 1
+        if self.track_age:
+            self.age += 1

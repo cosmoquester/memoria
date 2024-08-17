@@ -1,8 +1,10 @@
+import sys
 from typing import Optional, Tuple, Union
 
 import torch
 
 from .engram import Engrams, EngramType
+from .history_manager import HistoryManager
 from .utils import super_unique
 
 
@@ -13,6 +15,7 @@ class Memoria:
         engrams: engrams to store memory data and the relations between them
         next_engram_id: next engram id to be assigned
         timestep: current timestep
+        history: history of engrams summaries
         num_reminded_stm: the number of stm reminded
         stm_capacity: the maximum memory length per batch for shortterm memory
         ltm_search_depth: the maximum number of depth for dfs memory search
@@ -20,6 +23,7 @@ class Memoria:
         num_final_ltms: the number of longterm memories to return
         track_age: whether to track age of each engram
         track_id: whether to track id of each engram
+        keep_history: whether to keep history of engrams
         device: memoria device to save engrams
         ext_device: original device of the data
     """
@@ -33,6 +37,7 @@ class Memoria:
         num_final_ltms: int,
         track_age: bool = False,
         track_id: bool = False,
+        keep_history: bool = False,
         device: Optional[Union[str, torch.device]] = None,
     ) -> None:
         """Initialize Memoria
@@ -47,11 +52,18 @@ class Memoria:
                 to remind longterm memory. so when `enable ltm` is True.
             track_age: whether to track age of each engram
             track_id: whether to track id of each engram
+            keep_history: whether to keep history of engrams
             device: memoria device to save engrams
         """
-        self.engrams = Engrams.empty()
-        self.next_engram_id = 0
-        self.timestep = 0
+        self.engrams = None
+        self.next_engram_id = None
+        self.timestep = None
+        self.history = None
+        self.reset_memory()
+
+        if keep_history and not track_id:
+            track_id = True
+            print("Warning: `keep_history` is True, so `track_id` is automatically set to True", file=sys.stderr)
 
         self.num_reminded_stm: float = num_reminded_stm
         self.stm_capacity: int = stm_capacity
@@ -60,6 +72,7 @@ class Memoria:
         self.num_final_ltms: int = num_final_ltms
         self.track_age: bool = track_age
         self.track_id: bool = track_id
+        self.keep_history: bool = keep_history
         self.device = torch.device(device) if device else None
         self.ext_device = None
 
@@ -137,6 +150,12 @@ class Memoria:
         self._memorize_shortterm_memory_as_longterm_memory()
 
         self.engrams = self.engrams.mask_select(self.engrams.lifespan > 0)
+
+        if self.keep_history:
+            if self.history is None:
+                self.history = [HistoryManager() for _ in range(indices.size(0))]
+            for history, summary in zip(self.history, self.engrams.status_summary()):
+                history.add_summary(summary)
 
     @torch.no_grad()
     def _calculate_memory_weight(self, working_memory: Engrams, key_memory: Engrams) -> torch.Tensor:
@@ -305,3 +324,4 @@ class Memoria:
         self.engrams = Engrams.empty()
         self.next_engram_id = 0
         self.timestep = 0
+        self.history = None

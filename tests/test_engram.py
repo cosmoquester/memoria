@@ -40,6 +40,20 @@ def test_equals():
     assert engrams != engrams2
 
 
+def test_engram_ids():
+    batch_size = 3
+    memory_length = 14
+    hidden_dim = 32
+
+    data = torch.randn(batch_size, memory_length, hidden_dim)
+    engrams = Engrams(data, track_engram_id=True, engram_ids=0)
+    assert (engrams.engram_ids == torch.arange(0, memory_length)[torch.newaxis, :].repeat(batch_size, 1)).all()
+
+    data2 = torch.randn(batch_size, memory_length, hidden_dim)
+    engrams2 = Engrams(data2, track_engram_id=True, engram_ids=14)
+    assert (engrams2.engram_ids == torch.arange(14, 14 + memory_length)[torch.newaxis, :].repeat(batch_size, 1)).all()
+
+
 def test_add():
     data = torch.tensor([[[0.0], [1.0], [2.0], [3.0]]])
     data2 = torch.tensor([[[4.0], [5.0], [6.0], [7.0]]])

@@ -1,7 +1,9 @@
 from enum import Enum
-from typing import Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import torch
+
+from .types import EngramConnection, EngramInfo, EngramsInfo
 
 
 class EngramType(Enum):
@@ -456,3 +458,72 @@ class Engrams:
     def increase_age(self) -> None:
         if self.track_age:
             self.age += 1
+
+    @torch.no_grad()
+    def status_summary(self) -> List[EngramsInfo]:
+        """Get status summary of engrams
+
+        Return:
+            engrams_info: list of engrams info for each batch element
+        """
+        assert self.track_engram_id, "Engram id must be tracked to get status summary"
+
+        engrams_info = []
+        for e in self:
+            engrams = {}
+            edges = {}
+            engram_ids_by_type = {
+                EngramType.WORKING: [],
+                EngramType.SHORTTERM: [],
+                EngramType.LONGTERM: [],
+            }
+
+            engram_ids = e.engram_ids[0].tolist()
+            engram_types = e.engrams_types.squeeze(0).tolist()
+
+            # [MemoryLength, MemoryLength]
+            # weight_matrix[i, j] means the probability of firing engram i and j together if i fires
+            weight_matrix = (e.induce_counts / e.fire_count.unsqueeze(2)).squeeze(0)
+
+            for i in range(e.data.size(1)):
+                if engram_types[i] == EngramType.NULL.value:
+                    continue
+                engram_id = engram_ids[i]
+                engram_type = EngramType(engram_types[i])
+                engram_ids_by_type[engram_type].append(engram_id)
+                lifespan = e.lifespan[0, i].item()
+                age = e.age[0, i].item() if e.track_age else None
+
+                outgoings = [
+                    EngramConnection(source_id=engram_id, target_id=target_id, weight=value)
+                    for target_id, type, value in zip(engram_ids, engram_types, weight_matrix[i].tolist())
+                    if type != EngramType.NULL.value
+                ]
+                incoming = [
+                    EngramConnection(source_id=source_id, target_id=engram_id, weight=value)
+                    for source_id, type, value in zip(engram_ids, engram_types, weight_matrix[:, i].tolist())
+                    if type != EngramType.NULL.value
+                ]
+                for outgoing in outgoings:
+                    edges[outgoing.source_id, outgoing.target_id] = outgoing
+
+                engrams[engram_id] = EngramInfo(
+                    id=engram_id,
+                    type=engram_type.name,
+                    lifespan=lifespan,
+                    age=age,
+                    fire_count=e.fire_count[0, i].item(),
+                    outgoings=outgoings,
+                    incoming=incoming,
+                )
+            engrams_info.append(
+                EngramsInfo(
+                    engrams=engrams,
+                    edges=edges,
+                    working=engram_ids_by_type[EngramType.WORKING],
+                    shortterm=engram_ids_by_type[EngramType.SHORTTERM],
+                    longterm=engram_ids_by_type[EngramType.LONGTERM],
+                )
+            )
+
+        return engrams_info

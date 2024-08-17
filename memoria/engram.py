@@ -22,6 +22,10 @@ class Engrams:
         engrams_types: engram types of each engram shaped [BatchSize, MemoryLength]
         lifespan: lifespan of each engram shaped [BatchSize, MemoryLength]
         age: age of each engram shaped [BatchSize, MemoryLength]
+        engram_ids: id of each engram shaped [BatchSize, MemoryLength]
+            if ids is integer, use the valuse as starting id so that id of each engram in a batch will be unique.
+        track_age: whether to track age
+        track_engram_id: whether to track engram id
     """
 
     @torch.no_grad()
@@ -32,10 +36,13 @@ class Engrams:
         engrams_types: Optional[Union[torch.Tensor, EngramType]] = None,
         lifespan: Union[torch.Tensor, int] = 0,
         age: Optional[Union[torch.Tensor, int]] = None,
+        engram_ids: Optional[Union[torch.Tensor, int]] = None,
         track_age: bool = False,
+        track_engram_id: bool = False,
     ) -> None:
         self.batch_size, self.memory_length, self.hidden_dim = data.shape
         self.track_age = track_age
+        self.track_engram_id = track_engram_id
 
         self.data: torch.Tensor = data.detach().float()
         self.induce_counts: torch.Tensor = (
@@ -86,6 +93,21 @@ class Engrams:
         else:
             self.age = None
 
+        if self.track_engram_id:
+            self.engram_ids = (
+                torch.arange(
+                    engram_ids,
+                    engram_ids + self.memory_length,
+                    dtype=torch.int32,
+                    requires_grad=False,
+                    device=data.device,
+                )[torch.newaxis, :].repeat(self.batch_size, 1)
+                if not isinstance(engram_ids, torch.Tensor)
+                else engram_ids.detach().type(torch.int32)
+            )
+        else:
+            self.engram_ids = None
+
     @classmethod
     def empty(cls) -> "Engrams":
         return cls(torch.zeros([0, 0, 0], dtype=torch.float32, requires_grad=False))
@@ -101,10 +123,13 @@ class Engrams:
             and (self.engrams_types == other.engrams_types).all()
             and (self.lifespan == other.lifespan).all()
             and self.track_age == other.track_age
+            and self.track_engram_id == other.track_engram_id
         )
 
         if self.track_age:
             comparison = comparison and (self.age == other.age).all()
+        if self.track_engram_id:
+            comparison = comparison and (self.engram_ids == other.engram_ids).all()
         return comparison
 
     @torch.no_grad()
@@ -115,10 +140,12 @@ class Engrams:
             return self
 
         track_age = self.track_age and other.track_age
+        use_id = self.track_engram_id and other.track_engram_id
         concatenated_data = torch.cat([self.data, other.data], dim=1)
         concatenated_engrams_types = torch.cat([self.engrams_types, other.engrams_types], dim=1)
         concatenated_lifespan = torch.cat([self.lifespan, other.lifespan], dim=1)
         concatentaed_age = torch.cat([self.age, other.age], dim=1) if track_age else None
+        concatenated_ids = torch.cat([self.engram_ids, other.engram_ids], dim=1) if use_id else None
 
         new_memory_length = self.memory_length + other.memory_length
         concatenated_induce_counts = torch.zeros(
@@ -136,7 +163,9 @@ class Engrams:
             engrams_types=concatenated_engrams_types,
             lifespan=concatenated_lifespan,
             age=concatentaed_age,
+            engram_ids=concatenated_ids,
             track_age=track_age,
+            track_engram_id=use_id,
         )
 
     @property
@@ -328,11 +357,8 @@ class Engrams:
             selected_induce_counts = self.induce_counts[:, indices][:, :, indices]
             selected_engrams_types = self.engrams_types[:, indices]
             selected_lifespan = self.lifespan[:, indices]
-
-            if self.track_age:
-                selected_age = self.age[:, indices]
-            else:
-                selected_age = None
+            selected_age = self.age[:, indices] if self.track_age else None
+            selected_ids = self.engram_ids[:, indices] if self.track_engram_id else None
         elif len(indices.shape) == 2:
             index_0 = torch.arange(self.batch_size, device=self.induce_counts.device, requires_grad=False)
             selected_data = self.data[index_0.unsqueeze(1), indices]
@@ -354,6 +380,12 @@ class Engrams:
                 selected_age.masked_fill_(null_indices_mask, -1)
             else:
                 selected_age = None
+
+            if self.track_engram_id:
+                selected_ids = self.engram_ids[index_0.unsqueeze(1), indices]
+                selected_ids.masked_fill_(null_indices_mask, -1)
+            else:
+                selected_ids = None
         else:
             raise ValueError("indices must be 1d or 2d tensor")
         return Engrams(
@@ -383,6 +415,7 @@ class Engrams:
         self.engrams_types = selected.engrams_types
         self.lifespan = selected.lifespan
         self.age = selected.age
+        self.engram_ids = selected.engram_ids
 
     @torch.no_grad()
     def extend_lifespan(self, indices: torch.Tensor, lifespan_delta: torch.Tensor):

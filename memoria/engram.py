@@ -497,12 +497,12 @@ class Engrams:
                 outgoings = [
                     EngramConnection(source_id=engram_id, target_id=target_id, weight=value)
                     for target_id, type, value in zip(engram_ids, engram_types, weight_matrix[i].tolist())
-                    if type != EngramType.NULL.value
+                    if type != EngramType.NULL.value and engram_id != target_id and value > 0
                 ]
                 incoming = [
                     EngramConnection(source_id=source_id, target_id=engram_id, weight=value)
                     for source_id, type, value in zip(engram_ids, engram_types, weight_matrix[:, i].tolist())
-                    if type != EngramType.NULL.value
+                    if type != EngramType.NULL.value and engram_id != source_id and value > 0
                 ]
                 for outgoing in outgoings:
                     edges[outgoing.source_id, outgoing.target_id] = outgoing

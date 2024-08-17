@@ -16,6 +16,7 @@ class Memoria:
         ltm_search_depth: int,
         initial_lifespan: int,
         num_final_ltms: int,
+        track_age: bool = False,
         device: Optional[Union[str, torch.device]] = None,
     ) -> None:
         """Initialize Memoria
@@ -28,6 +29,7 @@ class Memoria:
             num_final_ltms: the number of longterm memories to return
                 this module will not return shortterm memory indices, but keep shortterm memory
                 to remind longterm memory. so when `enable ltm` is True.
+            track_age: whether to track age of each engram
             device: memoria device to save engrams
         """
         self.engrams = Engrams.empty()
@@ -37,6 +39,7 @@ class Memoria:
         self.ltm_search_depth: int = ltm_search_depth
         self.initial_lifespan: int = initial_lifespan
         self.num_final_ltms: int = num_final_ltms
+        self.track_age: bool = track_age
         self.device = torch.device(device) if device else None
         self.ext_device = None
 
@@ -49,7 +52,12 @@ class Memoria:
         """
         self.ext_device = data.device
         self.device = self.device or data.device
-        self.engrams += Engrams(data.to(self.device), engrams_types=EngramType.WORKING, lifespan=self.initial_lifespan)
+        self.engrams += Engrams(
+            data.to(self.device),
+            engrams_types=EngramType.WORKING,
+            lifespan=self.initial_lifespan,
+            track_age=self.track_age,
+        )
 
     @torch.no_grad()
     def remind(self) -> Tuple[torch.Tensor, torch.Tensor]:

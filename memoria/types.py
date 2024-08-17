@@ -26,7 +26,7 @@ class EngramInfo:
     lifespan: int
     #: The age of the engram.
     age: Optional[int]
-    #: fire count of the engram.
+    #: Fire count of the engram.
     fire_count: int
     #: The outgoing edges of the engram.
     outgoings: List[EngramConnection]
@@ -48,3 +48,35 @@ class EngramsInfo:
     shortterm: List[int]
     #: Long-term memory engram IDs.
     longterm: List[int]
+
+
+@dataclass
+class Firing:
+    """Data structure for firing information."""
+
+    #: Firing timestep.
+    timestep: int
+    #: Engram ID.
+    engram_id: int
+    #: Lifespan Gain.
+    lifespan_gain: float
+
+
+@dataclass
+class EngramHistory:
+    """Historical information of an engram."""
+
+    #: Engram ID.
+    id: int
+    #: Creation time of the engram.
+    creation_timestep: int
+    #: Deletion time of the engram.
+    deletion_timestep: Optional[int]
+    #: Duration of the engram.
+    duration: Optional[int]
+    #: Firing times of the engram.
+    firing_times: List[int]
+    #: Firing information of the engram.
+    firings: List[Firing]
+    #: Summaries of the engram.
+    summaries: List[EngramsInfo]

@@ -70,6 +70,19 @@ def test_add():
     ).all()
 
 
+def test_iter():
+    batch_size = 3
+    memory_length = 14
+    hidden_dim = 32
+
+    data = torch.randn(batch_size, memory_length, hidden_dim)
+    engrams = Engrams(data)
+
+    for i, engram in enumerate(engrams):
+        assert engram.data.shape[0] == 1
+        assert (engram.data == data[i]).all()
+
+
 @pytest.mark.parametrize(
     "data,mask,expected",
     [

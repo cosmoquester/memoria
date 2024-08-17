@@ -168,6 +168,20 @@ class Engrams:
             track_engram_id=use_id,
         )
 
+    @torch.no_grad()
+    def __iter__(self):
+        for i in range(self.batch_size):
+            yield Engrams(
+                data=self.data[i].unsqueeze(0),
+                induce_counts=self.induce_counts[i].unsqueeze(0),
+                engrams_types=self.engrams_types[i].unsqueeze(0),
+                lifespan=self.lifespan[i].unsqueeze(0),
+                age=self.age[i].unsqueeze(0) if self.track_age else None,
+                engram_ids=self.engram_ids[i].unsqueeze(0) if self.track_engram_id else None,
+                track_age=self.track_age,
+                track_engram_id=self.track_engram_id,
+            )
+
     @property
     @torch.no_grad()
     def working_memory_mask(self) -> torch.Tensor:

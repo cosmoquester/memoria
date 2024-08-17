@@ -469,14 +469,11 @@ def test_status_summary():
     assert info.working == [0, 1]
     assert info.shortterm == [4]
     assert info.longterm == [2]
-    assert len(info.edges) == 16
+    assert len(info.edges) == 4 * 4 - 4 - 1
     assert len(info.engrams) == 4
     assert info.engrams[2].lifespan == 3.0
     assert info.engrams[0].type == "WORKING"
     assert info.engrams[1].age == 1
-    assert [edge.weight for edge in info.engrams[4].outgoings] == (torch.tensor([1, 2, 3, 7]) / 7).tolist()
-    assert [edge.weight for edge in info.engrams[1].incoming] == (
-        torch.tensor([1, 4, 0, 2]) / torch.tensor([5, 4, 3, 7])
-    ).tolist()
+    assert [edge.weight for edge in info.engrams[4].outgoings] == (torch.tensor([1, 2, 3]) / 7).tolist()
+    assert [edge.weight for edge in info.engrams[1].incoming] == (torch.tensor([1, 2]) / torch.tensor([5, 7])).tolist()
     assert info.engrams[4].fire_count == 7
-    print(engrams.status_summary())

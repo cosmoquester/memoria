@@ -7,7 +7,22 @@ from .utils import super_unique
 
 
 class Memoria:
-    """Memoria, general memory network for sequential modeling or processing"""
+    """Memoria, general memory network for sequential modeling or processing
+
+    Attributes:
+        engrams: engrams to store memory data and the relations between them
+        next_engram_id: next engram id to be assigned
+        timestep: current timestep
+        num_reminded_stm: the number of stm reminded
+        stm_capacity: the maximum memory length per batch for shortterm memory
+        ltm_search_depth: the maximum number of depth for dfs memory search
+        initial_lifespan: initial lifespan for each engrams
+        num_final_ltms: the number of longterm memories to return
+        track_age: whether to track age of each engram
+        track_id: whether to track id of each engram
+        device: memoria device to save engrams
+        ext_device: original device of the data
+    """
 
     def __init__(
         self,
@@ -36,6 +51,7 @@ class Memoria:
         """
         self.engrams = Engrams.empty()
         self.next_engram_id = 0
+        self.timestep = 0
 
         self.num_reminded_stm: float = num_reminded_stm
         self.stm_capacity: int = stm_capacity
@@ -68,6 +84,7 @@ class Memoria:
 
         if self.track_id:
             self.next_engram_id += new_engrams.engram_ids.max().cpu().item() + 1
+        self.self.timestep += 1
 
     @torch.no_grad()
     def remind(self) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -287,3 +304,4 @@ class Memoria:
         """Reset memory"""
         self.engrams = Engrams.empty()
         self.next_engram_id = 0
+        self.timestep = 0

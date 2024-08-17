@@ -84,7 +84,7 @@ class Memoria:
 
         if self.track_id:
             self.next_engram_id += new_engrams.engram_ids.max().cpu().item() + 1
-        self.self.timestep += 1
+        self.timestep += 1
 
     @torch.no_grad()
     def remind(self) -> Tuple[torch.Tensor, torch.Tensor]:

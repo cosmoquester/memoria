@@ -17,6 +17,7 @@ class Memoria:
         initial_lifespan: int,
         num_final_ltms: int,
         track_age: bool = False,
+        track_id: bool = False,
         device: Optional[Union[str, torch.device]] = None,
     ) -> None:
         """Initialize Memoria
@@ -30,9 +31,11 @@ class Memoria:
                 this module will not return shortterm memory indices, but keep shortterm memory
                 to remind longterm memory. so when `enable ltm` is True.
             track_age: whether to track age of each engram
+            track_id: whether to track id of each engram
             device: memoria device to save engrams
         """
         self.engrams = Engrams.empty()
+        self.next_engram_id = 0
 
         self.num_reminded_stm: float = num_reminded_stm
         self.stm_capacity: int = stm_capacity
@@ -40,6 +43,7 @@ class Memoria:
         self.initial_lifespan: int = initial_lifespan
         self.num_final_ltms: int = num_final_ltms
         self.track_age: bool = track_age
+        self.track_id: bool = track_id
         self.device = torch.device(device) if device else None
         self.ext_device = None
 
@@ -52,12 +56,18 @@ class Memoria:
         """
         self.ext_device = data.device
         self.device = self.device or data.device
-        self.engrams += Engrams(
+        new_engrams = Engrams(
             data.to(self.device),
             engrams_types=EngramType.WORKING,
             lifespan=self.initial_lifespan,
+            engram_ids=self.next_engram_id,
             track_age=self.track_age,
+            track_engram_id=self.track_id,
         )
+        self.engrams += new_engrams
+
+        if self.track_id:
+            self.next_engram_id += new_engrams.engram_ids.max().cpu().item() + 1
 
     @torch.no_grad()
     def remind(self) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -276,3 +286,4 @@ class Memoria:
     def reset_memory(self):
         """Reset memory"""
         self.engrams = Engrams.empty()
+        self.next_engram_id = 0

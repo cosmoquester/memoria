@@ -103,7 +103,9 @@ class Engrams:
                     dtype=torch.int32,
                     requires_grad=False,
                     device=data.device,
-                )[torch.newaxis, :].repeat(self.batch_size, 1)
+                )
+                .unsqueeze(0)
+                .repeat(self.batch_size, 1)
                 if not isinstance(engram_ids, torch.Tensor)
                 else engram_ids.detach().type(torch.int32)
             )

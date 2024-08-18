@@ -47,11 +47,11 @@ def test_engram_ids():
 
     data = torch.randn(batch_size, memory_length, hidden_dim)
     engrams = Engrams(data, track_engram_id=True, engram_ids=0)
-    assert (engrams.engram_ids == torch.arange(0, memory_length)[torch.newaxis, :].repeat(batch_size, 1)).all()
+    assert (engrams.engram_ids == torch.arange(0, memory_length).unsqueeze(0).repeat(batch_size, 1)).all()
 
     data2 = torch.randn(batch_size, memory_length, hidden_dim)
     engrams2 = Engrams(data2, track_engram_id=True, engram_ids=14)
-    assert (engrams2.engram_ids == torch.arange(14, 14 + memory_length)[torch.newaxis, :].repeat(batch_size, 1)).all()
+    assert (engrams2.engram_ids == torch.arange(14, 14 + memory_length).unsqueeze(0).repeat(batch_size, 1)).all()
 
 
 def test_add():

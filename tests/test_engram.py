@@ -11,6 +11,10 @@ def test_empty():
     assert len(empty) == 0
     assert empty == empty2
 
+    empty_with_options = Engrams.empty(track_age=True, track_engram_id=True)
+    assert empty_with_options.age is not None
+    assert empty_with_options.engram_ids is not None
+
 
 def test_init():
     batch_size = 3

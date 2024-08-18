@@ -113,8 +113,12 @@ class Engrams:
             self.engram_ids = None
 
     @classmethod
-    def empty(cls) -> "Engrams":
-        return cls(torch.zeros([0, 0, 0], dtype=torch.float32, requires_grad=False))
+    def empty(cls, track_age: bool = False, track_engram_id: bool = False) -> "Engrams":
+        return cls(
+            torch.zeros([0, 0, 0], dtype=torch.float32, requires_grad=False),
+            track_age=track_age,
+            track_engram_id=track_engram_id,
+        )
 
     def __len__(self) -> int:
         return self.lifespan.numel()

@@ -59,7 +59,6 @@ class Memoria:
         self.next_engram_id = None
         self.timestep = None
         self.history = None
-        self.reset_memory()
 
         if keep_history and not track_id:
             track_id = True
@@ -75,6 +74,8 @@ class Memoria:
         self.keep_history: bool = keep_history
         self.device = torch.device(device) if device else None
         self.ext_device = None
+
+        self.reset_memory()
 
     @torch.no_grad()
     def add_working_memory(self, data: torch.Tensor) -> None:
@@ -321,7 +322,7 @@ class Memoria:
 
     def reset_memory(self):
         """Reset memory"""
-        self.engrams = Engrams.empty()
+        self.engrams = Engrams.empty(track_age=self.track_age, track_engram_id=self.track_id)
         self.next_engram_id = 0
         self.timestep = 0
         self.history = None

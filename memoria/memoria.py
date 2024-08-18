@@ -97,7 +97,7 @@ class Memoria:
         self.engrams += new_engrams
 
         if self.track_id:
-            self.next_engram_id += new_engrams.engram_ids.max().cpu().item() + 1
+            self.next_engram_id = new_engrams.engram_ids.max().cpu().item() + 1
         self.timestep += 1
 
     @torch.no_grad()

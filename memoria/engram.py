@@ -417,6 +417,7 @@ class Engrams:
             lifespan=selected_lifespan,
             age=selected_age,
             track_age=self.track_age,
+            track_engram_id=self.track_engram_id,
         )
 
     @torch.no_grad()

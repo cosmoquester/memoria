@@ -96,19 +96,21 @@ class Engrams:
             self.age = None
 
         if self.track_engram_id:
-            self.engram_ids = (
-                torch.arange(
-                    engram_ids,
-                    engram_ids + self.memory_length,
-                    dtype=torch.int32,
-                    requires_grad=False,
-                    device=data.device,
+            if isinstance(engram_ids, torch.Tensor):
+                self.engram_ids = engram_ids.detach().type(torch.int32)
+            else:
+                engram_ids = engram_ids or 0
+                self.engram_ids = (
+                    torch.arange(
+                        engram_ids,
+                        engram_ids + self.memory_length,
+                        dtype=torch.int32,
+                        requires_grad=False,
+                        device=data.device,
+                    )
+                    .unsqueeze(0)
+                    .repeat(self.batch_size, 1)
                 )
-                .unsqueeze(0)
-                .repeat(self.batch_size, 1)
-                if not isinstance(engram_ids, torch.Tensor)
-                else engram_ids.detach().type(torch.int32)
-            )
         else:
             self.engram_ids = None
 
@@ -149,6 +151,10 @@ class Engrams:
 
         track_age = self.track_age and other.track_age
         use_id = self.track_engram_id and other.track_engram_id
+        if self.track_age != other.track_age:
+            print("Warning: track_age is disabled due to inconsistency")
+        if self.track_engram_id != other.track_engram_id:
+            print("Warning: track_engram_id is disabled due to inconsistency")
         concatenated_data = torch.cat([self.data, other.data], dim=1)
         concatenated_engrams_types = torch.cat([self.engrams_types, other.engrams_types], dim=1)
         concatenated_lifespan = torch.cat([self.lifespan, other.lifespan], dim=1)

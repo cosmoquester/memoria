@@ -12,6 +12,8 @@ class EngramConnection:
     target_id: int
     #: Connection weight (Probability).
     weight: float
+    #: Cofire count.
+    cofire_count: int
 
 
 @dataclass

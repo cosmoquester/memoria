@@ -497,7 +497,8 @@ class Engrams:
 
             # [MemoryLength, MemoryLength]
             # weight_matrix[i, j] means the probability of firing engram i and j together if i fires
-            weight_matrix = (e.induce_counts / e.fire_count.unsqueeze(2)).squeeze(0)
+            weight_matrix = (e.induce_counts / e.fire_count.unsqueeze(2)).squeeze(0).numpy()
+            induce_counts = e.induce_counts.squeeze(0).tolist()
 
             for i in range(e.data.size(1)):
                 if engram_types[i] == EngramType.NULL.value:
@@ -509,13 +510,17 @@ class Engrams:
                 age = e.age[0, i].item() if e.track_age else None
 
                 outgoings = [
-                    EngramConnection(source_id=engram_id, target_id=target_id, weight=value)
-                    for target_id, type, value in zip(engram_ids, engram_types, weight_matrix[i].tolist())
-                    if type != EngramType.NULL.value and engram_id != target_id and value > 0
+                    EngramConnection(source_id=engram_id, target_id=target_id, weight=weight, cofire_count=cofire)
+                    for target_id, type, weight, cofire in zip(
+                        engram_ids, engram_types, weight_matrix[i].tolist(), induce_counts[i]
+                    )
+                    if type != EngramType.NULL.value and engram_id != target_id and weight > 0
                 ]
                 incoming = [
-                    EngramConnection(source_id=source_id, target_id=engram_id, weight=value)
-                    for source_id, type, value in zip(engram_ids, engram_types, weight_matrix[:, i].tolist())
+                    EngramConnection(source_id=source_id, target_id=engram_id, weight=value, cofire_count=cofire)
+                    for source_id, type, value, cofire in zip(
+                        engram_ids, engram_types, weight_matrix[:, i].tolist(), induce_counts[i]
+                    )
                     if type != EngramType.NULL.value and engram_id != source_id and value > 0
                 ]
                 for outgoing in outgoings:

@@ -67,8 +67,9 @@ class HistoryManager:
             if engram_id not in summary.engrams:
                 self.engram_deletion_times[engram_id] = self.timestep
                 self.deleted_engram_ids.append(engram_id)
-            self.engram_durations[engram_id] = self.timestep - self.engram_creation_times[engram_id]
         self.alive_engram_ids = list(summary.engrams.keys())
+        for engram_id in self.alive_engram_ids:
+            self.engram_durations[engram_id] = self.timestep - self.engram_creation_times[engram_id] + 1
 
         self.summaries.append(summary)
 

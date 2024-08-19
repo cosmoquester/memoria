@@ -52,7 +52,7 @@ class HistoryManager:
                 self.alive_engram_ids.append(engram_id)
             elif (
                 engram_id in self.summaries[-1].engrams
-                and engram.lifespan > self.summaries[-1].engrams[engram_id].lifespan
+                and engram.fire_count > self.summaries[-1].engrams[engram_id].fire_count
             ):
                 self.engram_firing_times[engram_id].append(self.timestep)
                 self.engram_firings[engram_id].append(

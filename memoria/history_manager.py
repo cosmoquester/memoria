@@ -1,7 +1,7 @@
 from collections import defaultdict
 from typing import Dict, List
 
-from .types import EngramHistory, EngramsInfo, Firing
+from .types import EngramHistory, EngramsInfo, Firing, EngramInfo
 
 
 class HistoryManager:
@@ -15,6 +15,7 @@ class HistoryManager:
         engram_durations: Dictionary of engram durations.
         engram_firing_times: Dictionary of engram firing times.
         engram_firings: Dictionary of engram firings.
+        engram_fire_counts: Dictionary of engram fire counts.
         engram_ids: List of engram ids.
         alive_engram_ids: List of alive engram ids.
         deleted_engram_ids: List of deleted engram ids.
@@ -31,21 +32,42 @@ class HistoryManager:
         self.alive_engram_ids: List[int] = []
         self.deleted_engram_ids: List[int] = []
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.summaries)
 
-    def __getitem__(self, index: int):
+    def __getitem__(self, index: int) -> EngramsInfo:
         return self.summaries[index]
 
     @property
-    def timestep(self):
+    def timestep(self) -> int:
+        """Get the current timestep."""
         return len(self)
 
     @property
-    def engram_ids(self):
+    def engram_ids(self) -> List[int]:
+        """Get the list of engram IDs."""
         return list(self.engram_creation_times.keys())
 
-    def add_summary(self, summary: EngramsInfo):
+    @property
+    def engram_fire_counts(self) -> Dict[int, int]:
+        """Get the fire counts of the engrams."""
+        return {engram_id: len(firings) for engram_id, firings in self.engram_firings.items()}
+
+    @property
+    def engram_lastest_alive_timestep(self) -> Dict[int, int]:
+        """Get the latest alive timestep of the engrams."""
+        return {
+            engram_id: creation_time + self.engram_durations[engram_id] - 1
+            for engram_id, creation_time in self.engram_creation_times.items()
+        }
+
+    @property
+    def latest_engram_infos(self) -> Dict[int, EngramInfo]:
+        """Get the latest engram information before dying."""
+        last_timestep = self.engram_lastest_alive_timestep
+        return {engram_id: self.summaries[last_timestep[engram_id]].engrams[engram_id] for engram_id in self.engram_ids}
+
+    def add_summary(self, summary: EngramsInfo) -> None:
         for engram_id, engram in summary.engrams.items():
             if engram_id not in self.alive_engram_ids:
                 self.engram_creation_times[engram_id] = self.timestep

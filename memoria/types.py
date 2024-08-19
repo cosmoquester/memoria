@@ -35,6 +35,11 @@ class EngramInfo:
     #: The incoming edges of the engram.
     incoming: List[EngramConnection]
 
+    @property
+    def cofire_counts(self) -> Dict[int, int]:
+        """Get the cofire counts of the engram."""
+        return {edge.target_id: edge.cofire_count for edge in self.outgoings}
+
 
 @dataclass
 class EngramsInfo:

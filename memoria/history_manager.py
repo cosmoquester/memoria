@@ -1,7 +1,7 @@
 from collections import defaultdict
 from typing import Dict, List
 
-from .types import EngramHistory, EngramsInfo, Firing, EngramInfo
+from .types import EngramHistory, EngramInfo, EngramsInfo, Firing
 
 
 class HistoryManager:

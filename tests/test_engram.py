@@ -480,4 +480,6 @@ def test_status_summary():
     assert info.engrams[1].age == 1
     assert [edge.weight for edge in info.engrams[4].outgoings] == (torch.tensor([1, 2, 3]) / 7).tolist()
     assert [edge.weight for edge in info.engrams[1].incoming] == (torch.tensor([1, 2]) / torch.tensor([5, 7])).tolist()
+    assert info.engrams[0].outgoings[2].cofire_count == 1
+    assert info.engrams[1].outgoings[2].cofire_count == 4
     assert info.engrams[4].fire_count == 7

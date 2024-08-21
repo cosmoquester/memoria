@@ -497,7 +497,7 @@ class Engrams:
 
             # [MemoryLength, MemoryLength]
             # weight_matrix[i, j] means the probability of firing engram i and j together if i fires
-            weight_matrix = (e.induce_counts / e.fire_count.unsqueeze(2)).squeeze(0).numpy()
+            weight_matrix = (e.induce_counts / e.fire_count.unsqueeze(2)).squeeze(0).cpu().numpy()
             induce_counts = e.induce_counts.squeeze(0).tolist()
 
             for i in range(e.data.size(1)):

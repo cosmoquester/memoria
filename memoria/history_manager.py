@@ -1,3 +1,5 @@
+import gzip
+import pickle
 from collections import defaultdict
 from typing import Dict, List
 
@@ -37,6 +39,27 @@ class HistoryManager:
 
     def __getitem__(self, index: int) -> EngramsInfo:
         return self.summaries[index]
+
+    def save(self, path: str) -> None:
+        """Save the history manager to a compressed data file.
+
+        Args:
+            path: Path to save the history manager.
+        """
+        with gzip.open(path, "wb") as f:
+            pickle.dump(self, f)
+
+    @classmethod
+    def load(cls, path: str) -> "HistoryManager":
+        """Load the history manager from a compressed data file.
+
+        Args:
+            path: Path to load the history manager.
+        Returns:
+            HistoryManager: Loaded history manager.
+        """
+        with gzip.open(path, "rb") as f:
+            return pickle.load(f)
 
     @property
     def timestep(self) -> int:

@@ -60,9 +60,13 @@ class Memoria:
         self.timestep = None
         self.history = None
 
-        if keep_history and not track_id:
-            track_id = True
-            print("Warning: `keep_history` is True, so `track_id` is automatically set to True", file=sys.stderr)
+        if keep_history:
+            if not track_id:
+                track_id = True
+                print("Warning: `keep_history` is True, so `track_id` is automatically set to True", file=sys.stderr)
+            if not track_age:
+                track_age = True
+                print("Warning: `keep_history` is True, so `track_age` is automatically set to True", file=sys.stderr)
 
         self.num_reminded_stm: float = num_reminded_stm
         self.stm_capacity: int = stm_capacity

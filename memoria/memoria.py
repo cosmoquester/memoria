@@ -170,7 +170,7 @@ class Memoria:
             attention weights shaped [BatchSize, WorkingMemoryLength, ShorttermMemoryLength]
         """
         l2_square = (working_memory.data.unsqueeze(2) - key_memory.data.unsqueeze(1)).pow(2).sum(dim=3)
-        return l2_square.neg().exp()
+        return l2_square.neg()
 
     @torch.no_grad()
     def _remind_shortterm_memory(self, weight: torch.Tensor, shortterm_memory_indices: torch.Tensor) -> torch.Tensor:

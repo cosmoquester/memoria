@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Literal, Optional, Tuple
 
 
-@dataclass
+@dataclass(slots=True)
 class EngramConnection:
     """Data structure for engram connections."""
 
@@ -16,7 +16,7 @@ class EngramConnection:
     cofire_count: int
 
 
-@dataclass
+@dataclass(slots=True)
 class EngramInfo:
     """Data structure for engram information."""
 
@@ -41,7 +41,7 @@ class EngramInfo:
         return {edge.target_id: edge.cofire_count for edge in self.outgoings}
 
 
-@dataclass
+@dataclass(slots=True)
 class EngramsInfo:
     """Data structure for engrams information."""
 
@@ -57,7 +57,7 @@ class EngramsInfo:
     longterm: List[int]
 
 
-@dataclass
+@dataclass(slots=True)
 class Firing:
     """Data structure for firing information."""
 
@@ -69,7 +69,7 @@ class Firing:
     lifespan_gain: float
 
 
-@dataclass
+@dataclass(slots=True)
 class EngramHistory:
     """Historical information of an engram."""
 

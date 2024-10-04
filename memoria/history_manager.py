@@ -17,6 +17,7 @@ class HistoryManager:
         engram_durations: Dictionary of engram durations.
         engram_firing_times: Dictionary of engram firing times.
         engram_firings: Dictionary of engram firings.
+        firings_per_time: List of firings per timestep.
         engram_fire_counts: Dictionary of engram fire counts.
         engram_ids: List of engram ids.
         alive_engram_ids: List of alive engram ids.
@@ -30,6 +31,7 @@ class HistoryManager:
         self.engram_durations: Dict[int, int] = {}
         self.engram_firing_times: Dict[int, List[int]] = defaultdict(list)
         self.engram_firings: Dict[int, List[Firing]] = defaultdict(list)
+        self.firings_per_time: List[List[Firing]] = []
 
         self.alive_engram_ids: List[int] = []
         self.deleted_engram_ids: List[int] = []
@@ -91,6 +93,7 @@ class HistoryManager:
         return {engram_id: self.summaries[last_timestep[engram_id]].engrams[engram_id] for engram_id in self.engram_ids}
 
     def add_summary(self, summary: EngramsInfo) -> None:
+        firings = []
         for engram_id, engram in summary.engrams.items():
             if engram_id not in self.alive_engram_ids:
                 self.engram_creation_times[engram_id] = self.timestep
@@ -100,13 +103,14 @@ class HistoryManager:
                 and engram.fire_count > self.summaries[-1].engrams[engram_id].fire_count
             ):
                 self.engram_firing_times[engram_id].append(self.timestep)
-                self.engram_firings[engram_id].append(
-                    Firing(
-                        timestep=self.timestep,
-                        engram_id=engram_id,
-                        lifespan_gain=engram.lifespan - self.summaries[-1].engrams[engram_id].lifespan + 1.0,
-                    )
+                firing = Firing(
+                    timestep=self.timestep,
+                    engram_id=engram_id,
+                    lifespan_gain=engram.lifespan - self.summaries[-1].engrams[engram_id].lifespan + 1.0,
                 )
+                self.engram_firings[engram_id].append(firing)
+                firings.append(firing)
+        self.firings_per_time.append(firings)
 
         for engram_id in self.alive_engram_ids:
             if engram_id not in summary.engrams:

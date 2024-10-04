@@ -509,20 +509,20 @@ class Engrams:
                 lifespan = e.lifespan[0, i].item()
                 age = e.age[0, i].item() if e.track_age else None
 
-                outgoings = [
+                outgoings = tuple(
                     EngramConnection(source_id=engram_id, target_id=target_id, weight=weight, cofire_count=cofire)
                     for target_id, type, weight, cofire in zip(
                         engram_ids, engram_types, weight_matrix[i].tolist(), induce_counts[i]
                     )
                     if type != EngramType.NULL.value and engram_id != target_id and weight > 0
-                ]
-                incoming = [
+                )
+                incoming = tuple(
                     EngramConnection(source_id=source_id, target_id=engram_id, weight=value, cofire_count=cofire)
                     for source_id, type, value, cofire in zip(
                         engram_ids, engram_types, weight_matrix[:, i].tolist(), induce_counts[i]
                     )
                     if type != EngramType.NULL.value and engram_id != source_id and value > 0
-                ]
+                )
                 for outgoing in outgoings:
                     edges[outgoing.source_id, outgoing.target_id] = outgoing
 
@@ -539,9 +539,9 @@ class Engrams:
                 EngramsInfo(
                     engrams=engrams,
                     edges=edges,
-                    working=engram_ids_by_type[EngramType.WORKING],
-                    shortterm=engram_ids_by_type[EngramType.SHORTTERM],
-                    longterm=engram_ids_by_type[EngramType.LONGTERM],
+                    working=tuple(engram_ids_by_type[EngramType.WORKING]),
+                    shortterm=tuple(engram_ids_by_type[EngramType.SHORTTERM]),
+                    longterm=tuple(engram_ids_by_type[EngramType.LONGTERM]),
                 )
             )
 

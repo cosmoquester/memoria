@@ -34,7 +34,7 @@ class ContinuousSoftmaxFunction(torch.autograd.Function):
         Return:
             integraded result shaped [BatchSize, TotalBasis]
         """
-        psi: List[GaussianBasisFunctions] = ctx.psi
+        psi: list[GaussianBasisFunctions] = ctx.psi
         num_basis = [len(basis_functions) for basis_functions in psi]
         total_basis = sum(num_basis)
         r = torch.zeros(mu.shape[0], total_basis, dtype=ctx.dtype, device=ctx.device)
@@ -55,7 +55,7 @@ class ContinuousSoftmaxFunction(torch.autograd.Function):
 
     @classmethod
     def forward(
-        cls, ctx: FunctionCtx, theta: torch.FloatTensor, psi: List[GaussianBasisFunctions]
+        cls, ctx: FunctionCtx, theta: torch.FloatTensor, psi: list[GaussianBasisFunctions]
     ) -> torch.FloatTensor:
         """
         We assume a Gaussian.
@@ -91,7 +91,7 @@ class ContinuousSoftmaxFunction(torch.autograd.Function):
 
 
 class ContinuousSoftmax(nn.Module):
-    def __init__(self, psi: Optional[List[GaussianBasisFunctions]] = None):
+    def __init__(self, psi: Optional[list[GaussianBasisFunctions]] = None):
         super(ContinuousSoftmax, self).__init__()
         self.psi = psi
 

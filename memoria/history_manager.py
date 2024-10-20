@@ -1,7 +1,6 @@
 import gzip
 import pickle
 from collections import defaultdict
-from typing import Dict, List
 
 from .types import EngramHistory, EngramInfo, EngramsInfo, Firing
 
@@ -25,16 +24,16 @@ class HistoryManager:
     """
 
     def __init__(self):
-        self.summaries: List[EngramsInfo] = []
-        self.engram_creation_times: Dict[int, int] = {}
-        self.engram_deletion_times: Dict[int, int] = {}
-        self.engram_durations: Dict[int, int] = {}
-        self.engram_firing_times: Dict[int, List[int]] = defaultdict(list)
-        self.engram_firings: Dict[int, List[Firing]] = defaultdict(list)
-        self.firings_per_time: List[List[Firing]] = []
+        self.summaries: list[EngramsInfo] = []
+        self.engram_creation_times: dict[int, int] = {}
+        self.engram_deletion_times: dict[int, int] = {}
+        self.engram_durations: dict[int, int] = {}
+        self.engram_firing_times: dict[int, list[int]] = defaultdict(list)
+        self.engram_firings: dict[int, list[Firing]] = defaultdict(list)
+        self.firings_per_time: list[list[Firing]] = []
 
-        self.alive_engram_ids: List[int] = []
-        self.deleted_engram_ids: List[int] = []
+        self.alive_engram_ids: list[int] = []
+        self.deleted_engram_ids: list[int] = []
 
     def __len__(self) -> int:
         return len(self.summaries)
@@ -69,17 +68,17 @@ class HistoryManager:
         return len(self)
 
     @property
-    def engram_ids(self) -> List[int]:
+    def engram_ids(self) -> list[int]:
         """Get the list of engram IDs."""
         return list(self.engram_creation_times.keys())
 
     @property
-    def engram_fire_counts(self) -> Dict[int, int]:
+    def engram_fire_counts(self) -> dict[int, int]:
         """Get the fire counts of the engrams."""
         return {engram_id: len(firings) for engram_id, firings in self.engram_firings.items()}
 
     @property
-    def engram_lastest_alive_timestep(self) -> Dict[int, int]:
+    def engram_lastest_alive_timestep(self) -> dict[int, int]:
         """Get the latest alive timestep of the engrams."""
         return {
             engram_id: creation_time + self.engram_durations[engram_id] - 1
@@ -87,7 +86,7 @@ class HistoryManager:
         }
 
     @property
-    def latest_engram_infos(self) -> Dict[int, EngramInfo]:
+    def latest_engram_infos(self) -> dict[int, EngramInfo]:
         """Get the latest engram information before dying."""
         last_timestep = self.engram_lastest_alive_timestep
         return {engram_id: self.summaries[last_timestep[engram_id]].engrams[engram_id] for engram_id in self.engram_ids}

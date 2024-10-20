@@ -44,7 +44,7 @@ g.add_argument("--wandb-project", type=str, help="wanDB project name")
 # fmt: on
 
 
-def main(args: argparse.Namespace) -> Dict[str, float]:
+def main(args: argparse.Namespace) -> dict[str, float]:
     logger = get_logger("train_synthetic_task")
 
     if args.output_dir:

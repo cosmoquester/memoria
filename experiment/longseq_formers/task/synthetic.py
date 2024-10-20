@@ -59,7 +59,7 @@ class Synthetic(pl.LightningModule):
             }
         )
 
-    def _step(self, batch: Dict[str, torch.Tensor], batch_idx: int, prefix: str) -> Dict[str, float]:
+    def _step(self, batch: dict[str, torch.Tensor], batch_idx: int, prefix: str) -> dict[str, float]:
         """Train step function"""
         batch_size, length = batch["input_ids"].size()
         num_valid_labels = (batch["labels"] != -100).sum(dim=1)
@@ -103,7 +103,7 @@ class Synthetic(pl.LightningModule):
         metrics = {f"{prefix}/{k}": v for k, v in metrics.items()}
         return metrics
 
-    def training_step(self, batch: Dict[str, torch.Tensor], batch_idx: int) -> Dict[str, float]:
+    def training_step(self, batch: dict[str, torch.Tensor], batch_idx: int) -> dict[str, float]:
         """Train step function"""
         opt = self.optimizers()
         sch = self.lr_schedulers()
@@ -121,13 +121,13 @@ class Synthetic(pl.LightningModule):
         self.log_dict(metrics, prog_bar=True, logger=True, on_step=True, sync_dist=True)
         return metrics
 
-    def validation_step(self, batch: Dict[str, torch.Tensor], batch_idx: int) -> Dict[str, float]:
+    def validation_step(self, batch: dict[str, torch.Tensor], batch_idx: int) -> dict[str, float]:
         """Validation step function"""
         metrics = self._step(batch=batch, batch_idx=batch_idx, prefix="val")
         self.log_dict(metrics, prog_bar=True, logger=True, on_step=True, on_epoch=False, sync_dist=True)
         return metrics
 
-    def test_step(self, batch: Dict[str, torch.Tensor], batch_idx: int) -> Dict[str, float]:
+    def test_step(self, batch: dict[str, torch.Tensor], batch_idx: int) -> dict[str, float]:
         """Validation step function"""
         metrics = self._step(batch=batch, batch_idx=batch_idx, prefix="test")
         self.log_dict(metrics, prog_bar=True, logger=True, on_step=True, on_epoch=False, sync_dist=True)
@@ -157,11 +157,11 @@ class Synthetic(pl.LightningModule):
 
         return optimizers
 
-    def on_save_checkpoint(self, checkpoint: Dict[str, Any]):
+    def on_save_checkpoint(self, checkpoint: dict[str, Any]):
         checkpoint["model_config"] = self.model.config.to_dict()
         checkpoint["model_type"] = self.model.config.model_type
 
-    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+    def on_load_checkpoint(self, checkpoint: dict[str, Any]) -> None:
         config_dict = checkpoint["model_config"]
         config_cls = AutoConfig.for_model(checkpoint["model_type"])
         config = config_cls.from_dict(config_dict)

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Dict, List, Literal, Optional, Tuple
+from typing import Literal, Optional, Tuple
 
 
 @dataclass(slots=True, frozen=True)
@@ -36,7 +36,7 @@ class EngramInfo:
     incoming: Tuple[EngramConnection]
 
     @property
-    def cofire_counts(self) -> Dict[int, int]:
+    def cofire_counts(self) -> dict[int, int]:
         """Get the cofire counts of the engram."""
         return {edge.target_id: edge.cofire_count for edge in self.outgoings}
 
@@ -46,9 +46,9 @@ class EngramsInfo:
     """Data structure for engrams information."""
 
     #: Engram ID to EngramInfo mapping.
-    engrams: Dict[int, EngramInfo]
+    engrams: dict[int, EngramInfo]
     #: All engram connections mapping from source and target engram IDs.
-    edges: Dict[Tuple[int, int], EngramConnection]
+    edges: dict[Tuple[int, int], EngramConnection]
     #: Working memory engram IDs.
     working: Tuple[int]
     #: Short-term memory engram IDs.
@@ -82,8 +82,8 @@ class EngramHistory:
     #: Duration of the engram.
     duration: Optional[int]
     #: Firing times of the engram.
-    firing_times: List[int]
+    firing_times: list[int]
     #: Firing information of the engram.
-    firings: List[Firing]
+    firings: list[Firing]
     #: Summaries of the engram.
-    summaries: List[EngramsInfo]
+    summaries: list[EngramsInfo]

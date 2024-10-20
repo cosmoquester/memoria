@@ -185,7 +185,7 @@ class LongTermAttention(nn.Module):
         return samples, G_inf
 
     @staticmethod
-    def get_gaussian_basis_functions(num_basis: int, sigmas: List[float]) -> Tuple[torch.Tensor, torch.Tensor]:
+    def get_gaussian_basis_functions(num_basis: int, sigmas: list[float]) -> Tuple[torch.Tensor, torch.Tensor]:
         """Make gaussian basis mus with sigmas using grid
 
         Args:

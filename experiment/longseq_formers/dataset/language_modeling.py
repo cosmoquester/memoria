@@ -90,14 +90,14 @@ class LanguageModelingDataset(torch.utils.data.Dataset):
     def __len__(self) -> int:
         return len(self.data["input_ids"])
 
-    def __getitem__(self, index: int) -> Dict[str, torch.Tensor]:
+    def __getitem__(self, index: int) -> dict[str, torch.Tensor]:
         # [BatchSize, MaxLength]
         inputs = {k: v[index] for k, v in self.data.items()}
         inputs["labels"] = inputs["input_ids"]
         return inputs
 
     @staticmethod
-    def collate_fn(batches: List[Dict[str, torch.Tensor]]) -> Dict[str, torch.Tensor]:
+    def collate_fn(batches: list[dict[str, torch.Tensor]]) -> dict[str, torch.Tensor]:
         """Select first item becuase batch size is 1"""
         assert len(batches) == 1
         return batches[0]

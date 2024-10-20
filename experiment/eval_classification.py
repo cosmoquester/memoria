@@ -26,7 +26,7 @@ g.add_argument("--segment-size", type=int, help="segment size for infinity forme
 # fmt: on
 
 
-def main(args: argparse.Namespace) -> Dict[str, float]:
+def main(args: argparse.Namespace) -> dict[str, float]:
     logger = get_logger("evaluate_classification")
 
     logger.info(f"[+] Set Random Seed to {args.seed}")

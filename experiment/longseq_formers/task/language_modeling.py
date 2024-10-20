@@ -35,7 +35,7 @@ class LanguageModeling(pl.LightningModule):
             }
         )
 
-    def _step(self, batch: Dict[str, torch.Tensor], batch_idx: int, prefix="") -> Dict[str, float]:
+    def _step(self, batch: dict[str, torch.Tensor], batch_idx: int, prefix="") -> dict[str, float]:
         """Common step function
 
         Args:
@@ -70,19 +70,19 @@ class LanguageModeling(pl.LightningModule):
         metrics = {prefix + k: v for k, v in metrics.items()}
         return metrics
 
-    def training_step(self, batch: Dict[str, torch.Tensor], batch_idx: int) -> Dict[str, float]:
+    def training_step(self, batch: dict[str, torch.Tensor], batch_idx: int) -> dict[str, float]:
         """Train step function"""
         metrics = self._step(batch=batch, batch_idx=batch_idx, prefix="")
         self.log_dict(metrics, prog_bar=True, logger=True, on_step=True, sync_dist=True)
         return metrics
 
-    def validation_step(self, batch: Dict[str, torch.Tensor], batch_idx: int) -> Dict[str, float]:
+    def validation_step(self, batch: dict[str, torch.Tensor], batch_idx: int) -> dict[str, float]:
         """Validation step function"""
         metrics = self._step(batch=batch, batch_idx=batch_idx, prefix="val/")
         self.log_dict(metrics, prog_bar=True, logger=True, on_step=True, sync_dist=True)
         return metrics
 
-    def test_step(self, batch: Dict[str, torch.Tensor], batch_idx: int) -> Dict[str, float]:
+    def test_step(self, batch: dict[str, torch.Tensor], batch_idx: int) -> dict[str, float]:
         """Test step function"""
         metrics = self._step(batch=batch, batch_idx=batch_idx, prefix="test/")
         self.log_dict(metrics, prog_bar=True, logger=True, on_step=True, sync_dist=True)
@@ -137,11 +137,11 @@ class LanguageModeling(pl.LightningModule):
                 self.model.transformer.memoria.reset_memory()
                 self.model.transformer.prev_hidden = None
 
-    def on_save_checkpoint(self, checkpoint: Dict[str, Any]):
+    def on_save_checkpoint(self, checkpoint: dict[str, Any]):
         checkpoint["model_config"] = self.model.config.to_dict()
         checkpoint["model_type"] = self.model.config.model_type
 
-    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+    def on_load_checkpoint(self, checkpoint: dict[str, Any]) -> None:
         config_dict = checkpoint["model_config"]
         config_cls = AutoConfig.for_model(checkpoint["model_type"])
         config = config_cls.from_dict(config_dict)

@@ -470,9 +470,9 @@ def test_status_summary():
     )
     info = engrams.status_summary()[0]
 
-    assert info.working == [0, 1]
-    assert info.shortterm == [4]
-    assert info.longterm == [2]
+    assert info.working == (0, 1)
+    assert info.shortterm == (4,)
+    assert info.longterm == (2,)
     assert len(info.edges) == 4 * 4 - 4 - 1
     assert len(info.engrams) == 4
     assert info.engrams[2].lifespan == 3.0

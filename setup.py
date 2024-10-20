@@ -5,8 +5,8 @@ with open("README.md", "r") as f:
 
 setup(
     name="memoria-pytorch",
-    version="1.0.0",
-    description="Memoria is a Hebbian memory architecture for neural networks.",
+    version="1.1.0",
+    description="Memoria is a human-inspired memory architecture for neural networks.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     python_requires=">=3.10",

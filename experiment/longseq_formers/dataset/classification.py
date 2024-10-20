@@ -20,7 +20,7 @@ class ClassificationDataset(torch.utils.data.Dataset):
     """
 
     def __init__(
-        self, data: List[ClassificationDatum], tokenizer: AutoTokenizer, max_length: int, truncation: bool = True
+        self, data: list[ClassificationDatum], tokenizer: AutoTokenizer, max_length: int, truncation: bool = True
     ) -> None:
         super().__init__()
 
@@ -32,7 +32,7 @@ class ClassificationDataset(torch.utils.data.Dataset):
     def __len__(self) -> int:
         return len(self.data)
 
-    def __getitem__(self, index: int) -> Dict[str, torch.Tensor]:
+    def __getitem__(self, index: int) -> dict[str, torch.Tensor]:
         item = self.data[index]
         text = item["text"]
         label = item["label"]
@@ -52,7 +52,7 @@ class ClassificationDataset(torch.utils.data.Dataset):
         return inputs
 
     @staticmethod
-    def pad_collate_fn(batch: List[Dict[str, torch.Tensor]]) -> Dict[str, torch.Tensor]:
+    def pad_collate_fn(batch: list[dict[str, torch.Tensor]]) -> dict[str, torch.Tensor]:
         # [NumTimeSteps, BatchSize, MaxSequenceLength]
         padded_batch = {k: [item[k] for item in batch] for k in batch[0].keys()}
         for k in padded_batch:

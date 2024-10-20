@@ -21,7 +21,7 @@ g.add_argument("--shuffle", action="store_true", help="shuffle data order")
 # fmt: on
 
 
-def main(args: argparse.Namespace) -> Dict[str, float]:
+def main(args: argparse.Namespace) -> dict[str, float]:
     logger = get_logger("eval_synthetic_task")
 
     logger.info(" ====== Arguements ======")

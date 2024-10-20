@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List, Optional, Tuple, Union
+from typing import Optional, Tuple, Union
 
 import torch
 
@@ -474,7 +474,7 @@ class Engrams:
             self.age += 1
 
     @torch.no_grad()
-    def status_summary(self) -> List[EngramsInfo]:
+    def status_summary(self) -> list[EngramsInfo]:
         """Get status summary of engrams
 
         Return:

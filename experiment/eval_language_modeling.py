@@ -29,7 +29,7 @@ g.add_argument("--seed", type=int, default=42, help="random seed")
 # fmt: on
 
 
-def main(args: argparse.Namespace) -> Dict[str, float]:
+def main(args: argparse.Namespace) -> dict[str, float]:
     logger = get_logger("test_language_modeling")
 
     logger.info(" ====== Arguements ======")

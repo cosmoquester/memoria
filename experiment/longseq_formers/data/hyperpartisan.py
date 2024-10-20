@@ -17,7 +17,7 @@ HYPERPARTISAN_SPLITS = {
 # fmt: on
 
 
-def load_hyperpartisan_data() -> Dict[str, List[ClassificationDatum]]:
+def load_hyperpartisan_data() -> dict[str, list[ClassificationDatum]]:
     """Load Hyperpartisan dataset
 
     Returns:

@@ -298,7 +298,7 @@ class SparseTensor:
 
     def __get_keys_with_raw_keys(
         self, raw_keys: Union[int, slice, torch.Tensor, Tuple, List]
-    ) -> List[Union[int, slice, torch.Tensor]]:
+    ) -> list[Union[int, slice, torch.Tensor]]:
         if not isinstance(raw_keys, tuple):
             raw_keys = (raw_keys,)
         raw_keys = raw_keys + (None,) * (self.dim() - len(raw_keys))

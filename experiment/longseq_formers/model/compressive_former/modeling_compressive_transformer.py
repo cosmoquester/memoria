@@ -357,8 +357,8 @@ class CompressiveFormerPreTrainedModel(PreTrainedModel):
 @dataclass
 class CompressiveFormerModelOutput(ModelOutput):
     last_hidden_state: torch.FloatTensor
-    mems: List[torch.FloatTensor] = None
-    cmems: List[torch.FloatTensor] = None
+    mems: list[torch.FloatTensor] = None
+    cmems: list[torch.FloatTensor] = None
     aux_loss: torch.Tensor = None
 
 
@@ -480,8 +480,8 @@ class CompressiveFormerLMHeadModelOutput(ModelOutput):
     lm_loss: Optional[torch.FloatTensor] = None
     aux_loss: torch.FloatTensor = None
     logits: torch.FloatTensor = None
-    mems: List[torch.FloatTensor] = None
-    cmems: List[torch.FloatTensor] = None
+    mems: list[torch.FloatTensor] = None
+    cmems: list[torch.FloatTensor] = None
 
 
 class CompressiveFormerLMHeadModel(CompressiveFormerPreTrainedModel):

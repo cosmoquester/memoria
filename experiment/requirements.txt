@@ -10,4 +10,4 @@ nltk
 
 wandb
 
-git+ssh://git@github.com/cosmoquester/memoria
+memoria-pytorch==1.0.0

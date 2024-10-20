@@ -7,7 +7,7 @@ executors:
   python-executor:
     working_directory: ~/memoria
     docker:
-      - image: circleci/python:3.8
+      - image: circleci/python:3.10
 
 commands:
   install-packages:
